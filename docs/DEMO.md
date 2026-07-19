@@ -48,20 +48,23 @@ gh pr list; gh issue list
 **讲解点**：Agentic Workflow = 用自然语言 Markdown 写的 AI 工作流，编译后跑在
 GitHub Actions 里，默认只读 + safe-outputs 白名单写入，安全可控。
 
-1. 先给观众看源文件 `.github/workflows/issue-triage.md`——“这不是 YAML，是给 AI 的自然语言指令”。
-2. 现场创建 Issue（也可以用预置的 Issue #A）：
+> 预置的 Issue #1（priority）和 #2（due date）已被自动 triage 过，可先展示它们的
+> 标签和 AI 评论作为"结果"，再现场创建一个新 Issue 看"过程"。
+
+1. 先给观众看源文件 `.github/workflows/issue-triage.md`——"这不是 YAML，是给 AI 的自然语言指令"。
+2. 现场创建一个**bug 类** Issue（与预置的 enhancement 形成分类对比）：
 
 ```bash
 gh issue create \
-  --title "Support task priority levels" \
-  --body "As a team lead, I want each task to have a priority (low / medium / high) so the team knows what to work on first.
+  --title "DELETE /tasks/{id} returns 500 when id is not a number" \
+  --body "Sending DELETE /tasks/abc returns an unhandled error instead of a clean 4xx.
 
-Acceptance criteria:
-- Task model gets a priority field, default medium
-- POST /tasks accepts optional priority
-- PATCH /tasks/{id} can update priority
-- GET /tasks supports ?priority= filter
-- Invalid priority values are rejected with 422"
+Steps to reproduce:
+1. Start the server
+2. curl -X DELETE http://localhost:8000/tasks/abc
+3. Observe the response
+
+Expected: 422 validation error. Actual: unhandled exception."
 ```
 
 3. 打开 **Actions** 标签页 → `Issue Triage` 正在运行（约 1–2 分钟）。
@@ -78,14 +81,18 @@ Acceptance criteria:
 **讲解点**：Coding Agent 是"云端结对程序员"——领任务、开分支、写代码写测试、提 Draft PR，
 全程在受控的 Actions 环境中执行，产出必须走 PR 评审。
 
-1. 在 Issue 页面右侧 **Assignees** 中选择 **Copilot**（或用命令行）：
+1. 在 **Issue #1（Support task priority levels）** 页面右侧 **Assignees** 中选择
+   **Copilot**（或用命令行）：
 
 ```bash
 # 方式一：网页 UI 指派 Copilot（推荐，观众直观）
 # 方式二：命令行
 gh agent-task create --repo qifengdemoorg/demo-github-sdlc \
-  "Implement issue #<N>: add priority field to tasks per acceptance criteria"
+  "Implement issue #1: add priority field to tasks per acceptance criteria"
 ```
+
+> 💡 提示：想给第 6 幕省时间，可以**现在就把 Issue #2（due dates）也指派给 Copilot**，
+> 让两个 Agent 并行开发。
 
 2. Issue 上出现 👀 反应 → Copilot 创建 Draft PR（标题类似 *Add priority support to tasks*）。
 3. 点开 PR 里的 **View session**，展示 Agent 的实时工作日志：读 `copilot-instructions.md`、
@@ -165,9 +172,9 @@ gh pr merge <PR号> --squash --delete-branch
 **讲解点**：真实团队里多个 Agent 并行开发是常态，冲突不可避免。
 Agent Merge 用 AI 理解**两边的意图**做语义级合并，而不是逐行文本合并。
 
-**准备**（其实在第 2 幕时就可以同时做）：把第二个 Issue（due_date 截止日期）也指派给
-Copilot。两个功能都会改 `app/models.py` 的 `Task` 模型和 `app/main.py` 的路由 →
-**天然冲突**。
+**准备**（若第 2 幕已并行指派则跳过）：把 **Issue #2（Add due dates with overdue
+tracking）** 也指派给 Copilot。两个功能都会改 `app/models.py` 的 `Task` 模型和
+`app/main.py` 的路由 → **天然冲突**。
 
 1. 此时 PR #1（priority）已合入 main，PR #2（due_date）显示 **conflicts with main**。
 2. 演示 Agent Merge —— 两条路线任选：
