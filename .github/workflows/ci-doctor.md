@@ -31,11 +31,14 @@ ${{ github.event.workflow_run.id }} in ${{ github.repository }} just completed w
 conclusion `${{ github.event.workflow_run.conclusion }}`.
 
 1. If the conclusion is NOT `failure`, call `noop` and stop.
-2. Determine the head branch of the run:
-   `gh run view ${{ github.event.workflow_run.id }} --json headBranch --jq .headBranch`
-   Then find the associated open pull request:
-   `gh pr list --head "<head-branch>" --state open --json number`
-   If there is no open PR for the branch, call `noop` and stop.
+2. Get the head branch and head SHA of the run (parse the JSON fields separately,
+   never concatenate them):
+   `gh run view ${{ github.event.workflow_run.id }} --json headBranch,headSha`
+3. Find the open pull request for that head commit:
+   `gh api repos/${{ github.repository }}/commits/<headSha>/pulls --jq '.[0].number'`
+   If that returns nothing, fall back to:
+   `gh pr list --head "<headBranch>" --state open --json number --jq '.[0].number'`
+   If there is still no open PR, call `noop` and stop.
 3. Download and inspect the failed job logs:
    `gh run view ${{ github.event.workflow_run.id }} --log-failed`
 4. Identify the root cause: which job failed (Lint or Test), which test or rule failed,
