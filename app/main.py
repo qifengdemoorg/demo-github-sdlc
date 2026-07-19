@@ -61,3 +61,24 @@ def delete_task(task_id: int) -> None:
     if task_id not in _tasks:
         raise HTTPException(status_code=404, detail="Task not found")
     del _tasks[task_id]
+
+
+@app.post("/tasks/bulk", status_code=201)
+def bulk_create_tasks(titles: list[str]) -> list[Task]:
+    global _next_id
+    created = []
+    for title in titles:
+        task = Task(id=_next_id, title=title)
+        _tasks[task.id] = task
+        _next_id += 1
+        created.append(task)
+    return created
+
+
+@app.get("/tasks/search")
+def search_tasks(q: str = "") -> list[Task]:
+    results = []
+    for t in _tasks.values():
+        if q.lower() in t.title.lower():
+            results.append(t)
+    return results
