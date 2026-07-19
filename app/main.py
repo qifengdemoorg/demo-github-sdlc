@@ -28,7 +28,7 @@ def list_tasks() -> list[Task]:
     return sorted(_tasks.values(), key=lambda t: t.id)
 
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=200)
 def create_task(payload: TaskCreate) -> Task:
     global _next_id
     task = Task(id=_next_id, title=payload.title)
