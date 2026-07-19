@@ -1,9 +1,6 @@
-"""Data models for TaskFlow.
+"""Data models for TaskFlow."""
 
-The Task model is intentionally minimal. Planned extensions (tracked as issues):
-- due_date field with overdue queries
-"""
-
+from datetime import date
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -22,6 +19,7 @@ class TaskCreate(BaseModel):
 
     title: str = Field(min_length=1, max_length=200)
     priority: Priority = Priority.medium
+    due_date: date | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -30,6 +28,7 @@ class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     done: bool | None = None
     priority: Priority | None = None
+    due_date: date | None = None
 
 
 class Task(BaseModel):
@@ -39,3 +38,8 @@ class Task(BaseModel):
     title: str
     done: bool = False
     priority: Priority = Priority.medium
+    due_date: date | None = None
+
+    def is_overdue(self, today: date) -> bool:
+        """A task is overdue when it has a past due date and is not done."""
+        return self.due_date is not None and self.due_date < today and not self.done

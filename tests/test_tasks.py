@@ -108,3 +108,46 @@ def test_list_tasks_filtered_by_priority():
 def test_list_tasks_rejects_invalid_priority_filter():
     resp = client.get("/tasks", params={"priority": "nope"})
     assert resp.status_code == 422
+
+
+def test_create_task_with_due_date():
+    resp = client.post("/tasks", json={"title": "Deadline", "due_date": "2026-08-01"})
+    assert resp.status_code == 201
+    assert resp.json()["due_date"] == "2026-08-01"
+
+
+def test_create_task_without_due_date():
+    resp = client.post("/tasks", json={"title": "No deadline"})
+    assert resp.status_code == 201
+    assert resp.json()["due_date"] is None
+
+
+def test_create_task_rejects_invalid_due_date():
+    resp = client.post("/tasks", json={"title": "Bad", "due_date": "not-a-date"})
+    assert resp.status_code == 422
+
+
+def test_update_task_due_date():
+    client.post("/tasks", json={"title": "Task"})
+    resp = client.patch("/tasks/1", json={"due_date": "2030-01-01"})
+    assert resp.status_code == 200
+    assert resp.json()["due_date"] == "2030-01-01"
+
+
+def test_list_overdue_tasks():
+    client.post("/tasks", json={"title": "Past", "due_date": "2020-01-01"})
+    client.post("/tasks", json={"title": "Future", "due_date": "2999-12-31"})
+    client.post("/tasks", json={"title": "PastDone", "due_date": "2020-01-01"})
+    client.patch("/tasks/3", json={"done": True})
+    resp = client.get("/tasks", params={"overdue": "true"})
+    assert resp.status_code == 200
+    titles = [t["title"] for t in resp.json()]
+    assert titles == ["Past"]
+
+
+def test_overdue_filter_combines_with_priority():
+    client.post("/tasks", json={"title": "A", "priority": "high", "due_date": "2020-01-01"})
+    client.post("/tasks", json={"title": "B", "priority": "low", "due_date": "2020-01-01"})
+    resp = client.get("/tasks", params={"overdue": "true", "priority": "high"})
+    titles = [t["title"] for t in resp.json()]
+    assert titles == ["A"]
