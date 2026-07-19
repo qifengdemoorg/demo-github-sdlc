@@ -100,7 +100,8 @@ gh agent-task create --repo qifengdemoorg/demo-github-sdlc \
 4. **不用等它跑完**——讲解 `.github/copilot-instructions.md` 如何约束 Agent 的编码规范，
    然后进入第 4 幕（Ruleset），回头再看结果。
 
-> 🧯 兜底：预先跑好一个同款 PR（分支 `fallback/priority`），Agent 卡住时直接展示该 PR。
+> 🧯 兜底：预置分支 `fallback/priority` 已包含同款完整实现（14 个测试全绿），
+> Agent 卡住时一键开 PR 展示：`gh pr create --head fallback/priority --fill`
 
 ---
 
@@ -168,8 +169,9 @@ gh pr merge <PR号> --squash --delete-branch
 > gh api -X POST repos/qifengdemoorg/demo-github-sdlc/pulls/<PR号>/requested_reviewers \
 >   -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
 > ```
-> 若 Copilot Review 没有可展示的评论（代码太完美），打开预置的
-> `fallback/review-demo` PR，它包含刻意留的校验漏洞，评审意见丰富。
+> 若 Copilot Review 没有可展示的评论（代码太完美），切到预置的
+> **PR #6（fallback/review-demo）**——它埋了绕过校验、路由顺序 bug、缺测试三类缺陷，
+> Copilot 的评审意见已经在上面了。
 
 ---
 
@@ -212,7 +214,8 @@ Coding Agent 会 rebase / merge 并推送解决冲突的 commit。
 4. 收尾展示 main 上的最终代码：`Task` 同时拥有 `priority` 和 `due_date`，
    测试从 8 个涨到 20+ 个，全绿。
 
-> 🧯 兜底：预置 `fallback/merged` 分支包含两个功能的手工合并结果，可直接展示最终形态。
+> 🧯 兜底：预置分支 `fallback/merged` 包含两个功能的手工合并结果（20 个测试全绿），
+> 可直接展示最终形态。
 
 ---
 
@@ -241,9 +244,7 @@ gh pr create --fill
 ## 演示后清理
 
 ```bash
-# 关闭演示 PR 与 Issue、删除演示分支
-gh pr list --json number --jq '.[].number' | xargs -I{} gh pr close {} --delete-branch
-gh issue list --json number --jq '.[].number' | xargs -I{} gh issue close {}
+# 关闭演示 PR 与 Issue、删除演示分支（保留 fallback/* 与 PR #6、Issue #1/#2）
 git push origin --delete demo/broken-test 2>/dev/null || true
 
 # 如需完全重置代码到基线（谨慎！需临时停用 Ruleset）：
