@@ -29,7 +29,7 @@ class TaskUpdate(BaseModel):
     @classmethod
     def validate_priority_not_null(cls, value: object) -> object:
         if value is None:
-            raise ValueError("Input should be 'low', 'medium' or 'high'")
+            raise ValueError("Priority cannot be null; expected one of: low, medium, high")
         return value
 
 
