@@ -104,6 +104,13 @@ def test_update_task_rejects_invalid_priority():
     assert resp.status_code == 422
 
 
+def test_update_task_rejects_null_priority():
+    client.post("/tasks", json={"title": "Original"})
+    resp = client.patch("/tasks/1", json={"priority": None})
+    assert resp.status_code == 422
+    assert client.get("/tasks/1").json()["priority"] == "medium"
+
+
 def test_delete_task():
     client.post("/tasks", json={"title": "Remove me"})
     resp = client.delete("/tasks/1")
