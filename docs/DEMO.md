@@ -160,9 +160,15 @@ git reset --hard origin/main   # 现场还原
 
 ```bash
 gh pr merge <PR号> --squash --delete-branch
+# 若演示时间紧张，演示者(admin)可用 --admin 立即合并（Ruleset 的 PR-only bypass）
 ```
 
-> 🧯 兜底：若 Copilot Review 没有可展示的评论（代码太完美），打开预置的
+> 🧯 兜底：若自动评审迟迟未出现，手动请求一次（效果相同，已验证可用）：
+> ```bash
+> gh api -X POST repos/qifengdemoorg/demo-github-sdlc/pulls/<PR号>/requested_reviewers \
+>   -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+> ```
+> 若 Copilot Review 没有可展示的评论（代码太完美），打开预置的
 > `fallback/review-demo` PR，它包含刻意留的校验漏洞，评审意见丰富。
 
 ---
