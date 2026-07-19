@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, HTTPException
 
-from app.models import Task, TaskCreate, TaskUpdate
+from app.models import Priority, Task, TaskCreate, TaskUpdate
 
 app = FastAPI(title="TaskFlow", version="0.1.0")
 
@@ -24,14 +24,17 @@ def health() -> dict[str, str]:
 
 
 @app.get("/tasks")
-def list_tasks() -> list[Task]:
-    return sorted(_tasks.values(), key=lambda t: t.id)
+def list_tasks(priority: Priority | None = None) -> list[Task]:
+    tasks = _tasks.values()
+    if priority is not None:
+        tasks = [task for task in tasks if task.priority == priority]
+    return sorted(tasks, key=lambda t: t.id)
 
 
 @app.post("/tasks", status_code=201)
 def create_task(payload: TaskCreate) -> Task:
     global _next_id
-    task = Task(id=_next_id, title=payload.title)
+    task = Task(id=_next_id, title=payload.title, priority=payload.priority)
     _tasks[task.id] = task
     _next_id += 1
     return task

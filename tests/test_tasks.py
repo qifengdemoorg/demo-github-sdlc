@@ -27,10 +27,22 @@ def test_create_task():
     assert body["id"] == 1
     assert body["title"] == "Write demo script"
     assert body["done"] is False
+    assert body["priority"] == "medium"
+
+
+def test_create_task_with_priority():
+    resp = client.post("/tasks", json={"title": "Urgent fix", "priority": "high"})
+    assert resp.status_code == 201
+    assert resp.json()["priority"] == "high"
 
 
 def test_create_task_rejects_empty_title():
     resp = client.post("/tasks", json={"title": ""})
+    assert resp.status_code == 422
+
+
+def test_create_task_rejects_invalid_priority():
+    resp = client.post("/tasks", json={"title": "Write docs", "priority": "urgent"})
     assert resp.status_code == 422
 
 
@@ -41,6 +53,24 @@ def test_list_tasks():
     assert resp.status_code == 200
     titles = [t["title"] for t in resp.json()]
     assert titles == ["First", "Second"]
+
+
+def test_list_tasks_filters_by_priority():
+    client.post("/tasks", json={"title": "Low task", "priority": "low"})
+    client.post("/tasks", json={"title": "High task", "priority": "high"})
+    client.post("/tasks", json={"title": "Default task"})
+
+    resp = client.get("/tasks?priority=high")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "High task"
+    assert body[0]["priority"] == "high"
+
+
+def test_list_tasks_rejects_invalid_priority_filter():
+    resp = client.get("/tasks?priority=urgent")
+    assert resp.status_code == 422
 
 
 def test_get_task():
@@ -57,11 +87,21 @@ def test_get_missing_task_returns_404():
 
 def test_update_task():
     client.post("/tasks", json={"title": "Original"})
-    resp = client.patch("/tasks/1", json={"title": "Renamed", "done": True})
+    resp = client.patch(
+        "/tasks/1",
+        json={"title": "Renamed", "done": True, "priority": "low"},
+    )
     assert resp.status_code == 200
     body = resp.json()
     assert body["title"] == "Renamed"
     assert body["done"] is True
+    assert body["priority"] == "low"
+
+
+def test_update_task_rejects_invalid_priority():
+    client.post("/tasks", json={"title": "Original"})
+    resp = client.patch("/tasks/1", json={"priority": "urgent"})
+    assert resp.status_code == 422
 
 
 def test_delete_task():
