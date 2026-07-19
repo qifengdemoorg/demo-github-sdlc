@@ -4,11 +4,16 @@ The Task model is intentionally minimal. Planned extensions (tracked as issues):
 - due_date field with overdue queries
 """
 
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import BaseModel, Field
 
 Priority = Literal["low", "medium", "high"]
+PRIORITY_VALUES = get_args(Priority)
+NULL_PRIORITY_ERROR = (
+    "Value error, Priority cannot be null; expected one of: "
+    f"{', '.join(PRIORITY_VALUES)}"
+)
 
 
 class TaskCreate(BaseModel):

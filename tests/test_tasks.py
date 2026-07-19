@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app, reset_store
+from app.models import NULL_PRIORITY_ERROR
 
 client = TestClient(app)
 
@@ -112,7 +113,7 @@ def test_update_task_rejects_null_priority():
         {
             "type": "value_error",
             "loc": ["body", "priority"],
-            "msg": "Value error, Priority cannot be null; expected one of: low, medium, high",
+            "msg": NULL_PRIORITY_ERROR,
             "input": None,
         }
     ]
