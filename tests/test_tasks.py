@@ -69,3 +69,42 @@ def test_delete_task():
     resp = client.delete("/tasks/1")
     assert resp.status_code == 204
     assert client.get("/tasks/1").status_code == 404
+
+
+def test_create_task_default_priority():
+    resp = client.post("/tasks", json={"title": "Default priority"})
+    assert resp.status_code == 201
+    assert resp.json()["priority"] == "medium"
+
+
+def test_create_task_with_priority():
+    resp = client.post("/tasks", json={"title": "Urgent", "priority": "high"})
+    assert resp.status_code == 201
+    assert resp.json()["priority"] == "high"
+
+
+def test_create_task_rejects_invalid_priority():
+    resp = client.post("/tasks", json={"title": "Bad", "priority": "urgent"})
+    assert resp.status_code == 422
+
+
+def test_update_task_priority():
+    client.post("/tasks", json={"title": "Task"})
+    resp = client.patch("/tasks/1", json={"priority": "low"})
+    assert resp.status_code == 200
+    assert resp.json()["priority"] == "low"
+
+
+def test_list_tasks_filtered_by_priority():
+    client.post("/tasks", json={"title": "A", "priority": "high"})
+    client.post("/tasks", json={"title": "B", "priority": "low"})
+    client.post("/tasks", json={"title": "C", "priority": "high"})
+    resp = client.get("/tasks", params={"priority": "high"})
+    assert resp.status_code == 200
+    titles = [t["title"] for t in resp.json()]
+    assert titles == ["A", "C"]
+
+
+def test_list_tasks_rejects_invalid_priority_filter():
+    resp = client.get("/tasks", params={"priority": "nope"})
+    assert resp.status_code == 422
