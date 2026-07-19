@@ -6,7 +6,7 @@ The Task model is intentionally minimal. Planned extensions (tracked as issues):
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 Priority = Literal["low", "medium", "high"]
 
@@ -24,13 +24,6 @@ class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     done: bool | None = None
     priority: Priority | None = None
-
-    @field_validator("priority", mode="before")
-    @classmethod
-    def validate_priority_not_null(cls, value: object) -> object:
-        if value is None:
-            raise ValueError("Priority cannot be null; expected one of: low, medium, high")
-        return value
 
 
 class Task(BaseModel):

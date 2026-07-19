@@ -108,7 +108,14 @@ def test_update_task_rejects_null_priority():
     client.post("/tasks", json={"title": "Original"})
     resp = client.patch("/tasks/1", json={"priority": None})
     assert resp.status_code == 422
-    assert "Priority cannot be null" in resp.json()["detail"][0]["msg"]
+    assert resp.json()["detail"] == [
+        {
+            "type": "value_error",
+            "loc": ["body", "priority"],
+            "msg": "Value error, Priority cannot be null; expected one of: low, medium, high",
+            "input": None,
+        }
+    ]
     assert client.get("/tasks/1").json()["priority"] == "medium"
 
 

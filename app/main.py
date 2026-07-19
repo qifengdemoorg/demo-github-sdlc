@@ -53,6 +53,19 @@ def update_task(task_id: int, payload: TaskUpdate) -> Task:
     task = _tasks.get(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    if "priority" in payload.model_fields_set and payload.priority is None:
+        message = "Value error, Priority cannot be null; expected one of: low, medium, high"
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "type": "value_error",
+                    "loc": ["body", "priority"],
+                    "msg": message,
+                    "input": None,
+                }
+            ],
+        )
     updates = payload.model_dump(exclude_unset=True)
     task = task.model_copy(update=updates)
     _tasks[task_id] = task
