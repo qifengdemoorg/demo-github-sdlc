@@ -69,3 +69,70 @@ def test_delete_task():
     resp = client.delete("/tasks/1")
     assert resp.status_code == 204
     assert client.get("/tasks/1").status_code == 404
+
+
+# --- due_date tests ---
+
+
+def test_create_task_with_due_date():
+    resp = client.post("/tasks", json={"title": "Dated task", "due_date": "2026-08-01"})
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["due_date"] == "2026-08-01"
+
+
+def test_create_task_without_due_date_defaults_to_null():
+    resp = client.post("/tasks", json={"title": "No date"})
+    assert resp.status_code == 201
+    assert resp.json()["due_date"] is None
+
+
+def test_create_task_with_past_due_date_allowed():
+    resp = client.post("/tasks", json={"title": "Old task", "due_date": "2020-01-01"})
+    assert resp.status_code == 201
+    assert resp.json()["due_date"] == "2020-01-01"
+
+
+def test_update_task_sets_due_date():
+    client.post("/tasks", json={"title": "No date yet"})
+    resp = client.patch("/tasks/1", json={"due_date": "2026-09-15"})
+    assert resp.status_code == 200
+    assert resp.json()["due_date"] == "2026-09-15"
+
+
+def test_update_task_clears_due_date():
+    client.post("/tasks", json={"title": "Has date", "due_date": "2026-08-01"})
+    resp = client.patch("/tasks/1", json={"due_date": None})
+    assert resp.status_code == 200
+    assert resp.json()["due_date"] is None
+
+
+def test_overdue_filter_returns_only_overdue_incomplete_tasks():
+    # overdue and not done — should appear
+    client.post("/tasks", json={"title": "Overdue task", "due_date": "2020-01-01"})
+    # overdue but done — should NOT appear
+    client.post("/tasks", json={"title": "Overdue done", "due_date": "2020-01-01"})
+    client.patch("/tasks/2", json={"done": True})
+    # future due date — should NOT appear
+    client.post("/tasks", json={"title": "Future task", "due_date": "2099-12-31"})
+    # no due date — should NOT appear
+    client.post("/tasks", json={"title": "No due date"})
+
+    resp = client.get("/tasks?overdue=true")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "Overdue task"
+
+
+def test_overdue_false_returns_all_tasks():
+    client.post("/tasks", json={"title": "Task A", "due_date": "2020-01-01"})
+    client.post("/tasks", json={"title": "Task B"})
+    resp = client.get("/tasks?overdue=false")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
+
+
+def test_overdue_filter_invalid_value_returns_422():
+    resp = client.get("/tasks?overdue=notabool")
+    assert resp.status_code == 422

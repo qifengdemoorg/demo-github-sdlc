@@ -1,5 +1,7 @@
 """TaskFlow API - minimal task management service."""
 
+from datetime import date
+
 from fastapi import FastAPI, HTTPException
 
 from app.models import Task, TaskCreate, TaskUpdate
@@ -24,14 +26,18 @@ def health() -> dict[str, str]:
 
 
 @app.get("/tasks")
-def list_tasks() -> list[Task]:
-    return sorted(_tasks.values(), key=lambda t: t.id)
+def list_tasks(overdue: bool = False) -> list[Task]:
+    tasks = sorted(_tasks.values(), key=lambda t: t.id)
+    if overdue:
+        today = date.today()
+        tasks = [t for t in tasks if t.due_date is not None and t.due_date < today and not t.done]
+    return tasks
 
 
 @app.post("/tasks", status_code=201)
 def create_task(payload: TaskCreate) -> Task:
     global _next_id
-    task = Task(id=_next_id, title=payload.title)
+    task = Task(id=_next_id, title=payload.title, due_date=payload.due_date)
     _tasks[task.id] = task
     _next_id += 1
     return task
