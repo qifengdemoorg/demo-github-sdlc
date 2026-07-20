@@ -136,3 +136,16 @@ def test_overdue_false_returns_all_tasks():
 def test_overdue_filter_invalid_value_returns_422():
     resp = client.get("/tasks?overdue=notabool")
     assert resp.status_code == 422
+
+
+def test_create_task_invalid_due_date_returns_422():
+    resp = client.post("/tasks", json={"title": "Bad date", "due_date": "not-a-date"})
+    assert resp.status_code == 422
+
+
+def test_update_task_invalid_due_date_returns_422_and_date_unchanged():
+    client.post("/tasks", json={"title": "Has date", "due_date": "2026-08-01"})
+    resp = client.patch("/tasks/1", json={"due_date": "not-a-date"})
+    assert resp.status_code == 422
+    stored = client.get("/tasks/1").json()
+    assert stored["due_date"] == "2026-08-01"
