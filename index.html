@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Agentic SDLC 架构 · TaskFlow</title>
+
+<!-- Fonts: Archivo (display) + Nunito (body) + Noto Sans SC (CJK) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Nunito:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   THEME — Swiss Modern (edit :root to reskin)
+   =========================================== */
+:root{
+  --stage-bg:#111111;        /* letterbox area */
+  --slide-bg:#ffffff;
+  --ink:#0a0a0a;
+  --red:#ff3300;
+  --muted:#6b6b6b;
+  --line:#d9d9d9;
+  --grid:#ececec;
+  --zone-ot:#9a9a9a;         /* OneTeam zone */
+  --zone-gh:#0a0a0a;         /* GitHub zone */
+  --zone-az:#ff3300;         /* Azure zone */
+  --font-display:'Archivo','Noto Sans SC',sans-serif;
+  --font-body:'Nunito','Noto Sans SC',sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+
+/* ===========================================
+   viewport-base.css  (fixed 16:9 stage)
+   =========================================== */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--stage-bg,#000);}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:var(--stage-bg,#000);}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;background:var(--slide-bg,#fff);}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;display:block;visibility:hidden;opacity:0;pointer-events:none;background:var(--slide-bg,#fff);}
+.slide.active,.slide.visible{visibility:visible;opacity:1;pointer-events:auto;z-index:1;}
+img,video,canvas,svg{max-width:100%;max-height:100%;}
+.deck-controls{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:1000;}
+@media print{
+  html,body{width:1920px;height:auto;overflow:visible;background:#fff;}
+  .deck-viewport{position:static;overflow:visible;background:#fff;}
+  .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none;}
+  .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:1920px;height:1080px;break-after:page;page-break-after:always;}
+  .slide:last-child{break-after:auto;page-break-after:auto;}
+  .deck-controls{display:none!important;}
+}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.2s!important;}}
+
+/* ===========================================
+   BASE SLIDE + SHARED CHROME
+   =========================================== */
+.slide{color:var(--ink);font-family:var(--font-body);
+  background:
+    linear-gradient(var(--grid) 1px,transparent 1px) 0 0/100% 120px,
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/160px 100%,
+    var(--slide-bg);}
+.wrap{position:absolute;inset:0;padding:74px 104px 84px;display:flex;flex-direction:column;}
+.chrome{display:flex;justify-content:space-between;align-items:center;}
+.kicker{display:flex;align-items:center;gap:16px;font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.4em;text-transform:uppercase;}
+.kicker .sq{width:18px;height:18px;background:var(--red);flex:0 0 auto;}
+.nav{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;}
+.nav b{color:var(--ink);}
+.shead{position:relative;margin:26px 0 20px;display:flex;align-items:baseline;gap:26px;}
+.shead .idx{font-family:var(--font-display);font-weight:900;font-size:96px;line-height:.8;color:transparent;-webkit-text-stroke:2px #d5d5d5;letter-spacing:-.03em;}
+.shead h2{font-family:var(--font-display);font-weight:900;font-size:66px;line-height:1;letter-spacing:-.01em;}
+.shead .tab{position:absolute;left:0;bottom:-14px;height:10px;width:300px;background:var(--red);transform-origin:left;}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;}
+
+/* reveal animations (professional/editorial: crisp staggered) */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .55s var(--ease),transform .55s var(--ease);}
+.slide.visible .reveal{opacity:1;transform:none;}
+.wipe{transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease) .35s;}
+.slide.visible .wipe{transform:scaleX(1);}
+.d1{transition-delay:.05s}.d2{transition-delay:.13s}.d3{transition-delay:.21s}.d4{transition-delay:.29s}
+.d5{transition-delay:.37s}.d6{transition-delay:.45s}.d7{transition-delay:.53s}.d8{transition-delay:.61s}
+
+/* ===========================================
+   SLIDE 1 — TITLE
+   =========================================== */
+.title-slide .wrap{padding:96px 110px;}
+.t-frame{position:absolute;inset:52px;border:2px solid var(--ink);pointer-events:none;}
+.t-kicker{position:absolute;top:96px;left:110px;display:flex;align-items:center;gap:18px;font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:.42em;text-transform:uppercase;}
+.t-kicker .sq{width:22px;height:22px;background:var(--red);}
+.t-bignum{position:absolute;top:150px;right:120px;font-family:var(--font-display);font-weight:900;font-size:300px;line-height:.8;color:transparent;-webkit-text-stroke:2px #dcdcdc;letter-spacing:-.02em;}
+.t-vlabel{position:absolute;top:0;bottom:0;right:48px;display:flex;align-items:center;writing-mode:vertical-rl;font-family:var(--font-body);font-weight:700;font-size:18px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase;}
+.t-hero{position:absolute;left:110px;bottom:252px;}
+.t-hero h1{font-family:var(--font-display);font-weight:900;font-size:158px;line-height:.92;letter-spacing:-.02em;}
+.t-hero h1 .accent{color:var(--red);}
+.t-rule{width:520px;height:14px;background:var(--red);margin-top:40px;}
+.t-sub{position:absolute;left:110px;bottom:170px;font-family:var(--font-body);font-weight:700;font-size:36px;color:#2a2a2a;}
+.t-meta{position:absolute;left:110px;right:110px;bottom:94px;display:flex;border-top:2px solid var(--ink);padding-top:22px;font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase;}
+.t-meta span{padding-right:40px;margin-right:40px;border-right:2px solid #d5d5d5;}
+.t-meta span:last-child{border:0;color:var(--red);margin-left:auto;padding-right:0;margin-right:0;}
+
+/* ===========================================
+   SLIDE 2 — OVERVIEW
+   =========================================== */
+.ov{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;flex:1;align-content:center;}
+.ov .lead{font-size:34px;line-height:1.55;font-weight:600;}
+.ov .lead b{color:var(--red);}
+.ov .lead .small{display:block;margin-top:26px;font-size:24px;font-weight:600;color:var(--muted);line-height:1.5;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.stat{border:2px solid var(--ink);padding:26px 28px;}
+.stat .n{font-family:var(--font-display);font-weight:900;font-size:78px;line-height:.9;color:var(--red);}
+.stat .l{font-family:var(--font-body);font-weight:700;font-size:23px;margin-top:10px;}
+.stat .s{font-size:19px;color:var(--muted);margin-top:4px;}
+.platforms{margin-top:auto;display:flex;gap:0;border-top:2px solid var(--ink);padding-top:20px;}
+.platforms span{flex:1;font-family:var(--font-display);font-weight:800;font-size:24px;letter-spacing:.04em;text-transform:uppercase;padding-right:24px;}
+.platforms span i{display:block;font-family:var(--font-body);font-weight:600;font-style:normal;font-size:18px;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:4px;}
+
+/* ===========================================
+   SLIDE 3 — ARCHITECTURE FLOW
+   =========================================== */
+.flow{display:flex;align-items:stretch;gap:0;margin-top:14px;}
+.node{flex:1 1 0;min-width:0;border:2px solid var(--ink);border-top:6px solid var(--zone,#0a0a0a);background:#fff;padding:16px 14px 14px;display:flex;flex-direction:column;gap:6px;}
+.node.ot{--zone:var(--zone-ot);}.node.gh{--zone:var(--zone-gh);}.node.az{--zone:var(--zone-az);}
+.node .num{font-family:var(--font-display);font-weight:900;font-size:24px;color:var(--red);}
+.node .nm{font-family:var(--font-display);font-weight:800;font-size:23px;line-height:1.06;}
+.node .sb{font-size:16px;color:var(--muted);line-height:1.25;}
+.arw{flex:0 0 30px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;font-size:30px;color:var(--red);}
+.legend{display:flex;gap:36px;margin-top:24px;font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.02em;text-transform:uppercase;}
+.legend i{display:inline-block;width:26px;height:10px;margin-right:10px;vertical-align:middle;}
+.loop{margin-top:26px;border:2px dashed var(--red);padding:18px 26px;display:flex;align-items:center;gap:18px;background:#fff7f5;}
+.loop .lc{font-family:var(--font-display);font-weight:900;font-size:26px;color:var(--red);}
+.loop .lt{font-size:24px;font-weight:700;}
+.loop .lt b{color:var(--red);}
+
+/* ===========================================
+   SLIDE 4 — 8 LAYERS GRID
+   =========================================== */
+.grid8{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:20px;flex:1;}
+.lcard{border:2px solid var(--ink);padding:20px 22px;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.lcard .bignum{position:absolute;right:8px;top:-16px;font-family:var(--font-display);font-weight:900;font-size:96px;color:transparent;-webkit-text-stroke:2px #eee;}
+.lcard .h{font-family:var(--font-display);font-weight:900;font-size:27px;display:flex;align-items:center;gap:12px;}
+.lcard .h .dot{width:14px;height:14px;background:var(--red);flex:0 0 auto;}
+.lcard .role{font-size:20px;font-weight:700;margin-top:12px;line-height:1.35;}
+.lcard .carrier{margin-top:auto;padding-top:12px;font-family:'Archivo',monospace;font-size:16px;color:var(--muted);line-height:1.35;border-top:1px solid var(--line);}
+
+/* ===========================================
+   SLIDE 5 — DATA FLOW LOOP
+   =========================================== */
+.steps{display:flex;gap:0;flex:1;align-items:stretch;margin-top:10px;}
+.step{flex:1 1 0;padding:0 26px;border-left:2px solid var(--line);display:flex;flex-direction:column;}
+.step:first-child{border-left:0;padding-left:0;}
+.step .sn{font-family:var(--font-display);font-weight:900;font-size:92px;line-height:.85;color:transparent;-webkit-text-stroke:2px var(--ink);}
+.step.hot .sn{color:var(--red);-webkit-text-stroke:0;}
+.step .st{font-size:23px;font-weight:700;line-height:1.4;margin-top:20px;}
+.step .st b{color:var(--red);}
+.loopbar{margin-top:24px;background:var(--ink);color:#fff;padding:20px 30px;display:flex;align-items:center;gap:20px;}
+.loopbar .k{font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:.24em;color:var(--red);text-transform:uppercase;flex:0 0 auto;}
+.loopbar .v{font-size:23px;font-weight:700;}
+
+/* ===========================================
+   SLIDE 6 — STATUS TABLE
+   =========================================== */
+.dtable{width:100%;border-collapse:collapse;margin-top:8px;}
+.dtable th{font-family:var(--font-display);font-weight:800;font-size:20px;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:14px 18px;border-bottom:3px solid var(--ink);}
+.dtable td{font-size:23px;font-weight:600;padding:13px 18px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.dtable td.layer{font-family:var(--font-display);font-weight:900;font-size:24px;width:130px;}
+.dtable tr:last-child td{border-bottom:0;}
+.chip{display:inline-block;font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:.04em;padding:5px 14px;white-space:nowrap;}
+.chip.ok{background:var(--ink);color:#fff;}
+.chip.part{border:2px solid var(--ink);color:var(--ink);}
+.chip.gap{background:var(--red);color:#fff;}
+
+/* ===========================================
+   SLIDES 7 & 8 — WORK ITEMS (3 columns)
+   =========================================== */
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;flex:1;}
+.wcol{border:2px solid var(--ink);display:flex;flex-direction:column;}
+.wcol .wh{background:var(--ink);color:#fff;padding:16px 22px;font-family:var(--font-display);font-weight:900;font-size:26px;display:flex;align-items:baseline;gap:12px;}
+.wcol .wh .tag{color:var(--red);font-size:22px;}
+.wcol .wsub{font-family:var(--font-body);font-weight:700;font-size:18px;color:#cfcfcf;}
+.wcol ul{list-style:none;padding:18px 22px;display:flex;flex-direction:column;gap:15px;}
+.wcol li{font-size:20px;line-height:1.35;}
+.wcol li .id{display:inline-block;font-family:'Archivo',monospace;font-weight:700;font-size:16px;background:#f0f0f0;padding:2px 8px;margin-bottom:4px;}
+.wcol li .id.done{background:var(--ink);color:#fff;}
+.wcol li .id.opt{background:#fff;border:1px dashed var(--muted);color:var(--muted);}
+.wcol li .dz{color:var(--muted);font-weight:600;font-size:18px;}
+
+/* ===========================================
+   SLIDE 9 — ROADMAP / DEPENDENCIES
+   =========================================== */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;flex:1;}
+.phase{border:2px solid var(--ink);border-top:6px solid var(--red);padding:20px 22px;display:flex;flex-direction:column;}
+.phase .pn{font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:.12em;text-transform:uppercase;color:var(--red);}
+.phase .pt{font-family:var(--font-display);font-weight:900;font-size:27px;margin:8px 0 14px;line-height:1.1;}
+.phase ol{list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:s;}
+.phase li{font-size:19px;font-weight:700;line-height:1.3;padding-left:0;}
+.phase li .m{font-family:'Archivo',monospace;font-size:15px;color:var(--muted);font-weight:600;}
+.phase .par{margin-top:auto;padding-top:12px;font-size:17px;font-weight:700;color:var(--muted);border-top:1px solid var(--line);}
+.chain{margin-top:24px;background:#fff7f5;border:2px solid var(--red);padding:16px 24px;font-family:var(--font-display);font-weight:800;font-size:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.chain .k{color:var(--red);letter-spacing:.1em;text-transform:uppercase;font-size:19px;}
+.chain code{font-family:'Archivo',monospace;font-weight:700;font-size:20px;}
+.chain .gt{color:var(--red);}
+
+/* ===========================================
+   SLIDE 10 — ASSUMPTIONS + NEXT
+   =========================================== */
+.close{display:grid;grid-template-columns:1fr 1fr;gap:56px;flex:1;align-content:center;}
+.asm h3,.nxt h3{font-family:var(--font-display);font-weight:900;font-size:30px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.asm h3 .sq,.nxt h3 .sq{width:16px;height:16px;background:var(--red);}
+.asm ul{list-style:none;display:flex;flex-direction:column;gap:16px;}
+.asm li{font-size:23px;font-weight:600;line-height:1.4;padding-left:26px;position:relative;}
+.asm li::before{content:"—";position:absolute;left:0;color:var(--red);font-weight:900;}
+.nxt .cta{border:2px solid var(--ink);padding:24px 26px;margin-bottom:20px;}
+.nxt .cta.hot{background:var(--red);color:#fff;border-color:var(--red);}
+.nxt .cta .t{font-family:var(--font-display);font-weight:900;font-size:26px;}
+.nxt .cta .d{font-size:20px;font-weight:600;margin-top:8px;line-height:1.4;}
+.endline{margin-top:26px;font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+
+/* ===========================================
+   DECK CONTROLS + EDIT AFFORDANCE
+   =========================================== */
+.deck-controls{display:flex;align-items:center;gap:14px;font-family:var(--font-display);font-weight:700;color:#fff;mix-blend-mode:difference;font-size:16px;letter-spacing:.1em;}
+.deck-controls button{background:none;border:1.5px solid #fff;color:#fff;width:34px;height:34px;cursor:pointer;font-size:16px;line-height:1;}
+.progress{position:fixed;left:0;top:0;height:4px;background:var(--red);z-index:1001;transition:width .4s var(--ease);}
+.edit-hotzone{position:fixed;top:0;left:0;width:80px;height:80px;z-index:10000;cursor:pointer;}
+.edit-toggle{position:fixed;top:16px;left:16px;width:44px;height:44px;border:none;border-radius:50%;background:var(--ink);color:#fff;font-size:18px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:10001;}
+.edit-toggle.show,.edit-toggle.active{opacity:1;pointer-events:auto;}
+.edit-toggle.active{background:var(--red);}
+.editing [contenteditable="true"]{outline:2px dashed var(--red);outline-offset:3px;cursor:text;}
+.edit-hint{position:fixed;bottom:20px;left:16px;background:var(--ink);color:#fff;font-family:var(--font-body);font-weight:700;font-size:14px;padding:8px 14px;z-index:10001;opacity:0;transform:translateY(8px);transition:.3s;}
+.edit-hint.show{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+
+    <!-- ===== SLIDE 1 — TITLE ===== -->
+    <section class="slide title-slide active visible">
+      <div class="wrap">
+        <div class="t-frame reveal d1"></div>
+        <div class="t-kicker reveal d1"><span class="sq"></span>ARCHITECTURE · 架构评审</div>
+        <div class="t-bignum reveal d2">01</div>
+        <div class="t-vlabel reveal d2">qifengdemoorg / demo-github-sdlc</div>
+        <div class="t-hero">
+          <h1 class="reveal d3">GitHub <span class="accent">Agentic</span><br>SDLC 架构</h1>
+          <div class="t-rule wipe"></div>
+        </div>
+        <div class="t-sub reveal d4">从需求到运维的 AI 驱动研发闭环</div>
+        <div class="t-meta reveal d5"><span>TaskFlow</span><span>8 层一体化</span><span>2026.07.21</span></div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 2 — OVERVIEW ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Overview · 概览</div><div class="nav"><b>02</b> / 10</div></div>
+        <header class="shead"><span class="idx">02</span><h2>概览</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="ov">
+            <div class="lead reveal d2">以最小的 FastAPI 应用 <b>TaskFlow</b> 为载体,把 <b>需求 → 编码 → 评审 → 门禁 → 测试 → 部署 → 运维</b> 串成一条 AI 驱动的研发闭环。
+              <span class="small">四大平台协同:OneTeam(需求)· GitHub(仓库/Agent/门禁)· GitHub Actions(CI/CD 与 Agentic Workflow)· Azure(承载与自愈)。已跑通 6 项能力,余下 4 块为本次待补。</span>
+            </div>
+            <div class="stats">
+              <div class="stat reveal d3"><div class="n">8</div><div class="l">架构分层</div><div class="s">需求 → 运维闭环</div></div>
+              <div class="stat reveal d4"><div class="n">6</div><div class="l">已落地能力</div><div class="s">Agent/评审/门禁/CI…</div></div>
+              <div class="stat reveal d5"><div class="n">17</div><div class="l">待办工作项</div><div class="s">分 A–F 六组</div></div>
+              <div class="stat reveal d6"><div class="n">4</div><div class="l">待补板块</div><div class="s">①同步 ②Spec ⑦CD ⑧SRE</div></div>
+            </div>
+          </div>
+          <div class="platforms reveal d7">
+            <span>OneTeam<i>需求 · PRD</i></span>
+            <span>GitHub<i>仓库 · Coding Agent · 门禁</i></span>
+            <span>GitHub Actions<i>CI/CD · Agentic Workflow</i></span>
+            <span>Azure<i>部署 · SRE 自愈</i></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 3 — ARCHITECTURE FLOW ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Blueprint · 架构总览</div><div class="nav"><b>03</b> / 10</div></div>
+        <header class="shead"><span class="idx">03</span><h2>架构总览</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="flow">
+            <div class="node ot reveal d1"><span class="num">01</span><span class="nm">项目管理</span><span class="sb">OneTeam · PRD</span></div>
+            <span class="arw reveal d1">→</span>
+            <div class="node gh reveal d2"><span class="num">02</span><span class="nm">需求同步</span><span class="sb">GitHub MCP → Issues</span></div>
+            <span class="arw reveal d2">→</span>
+            <div class="node gh reveal d3"><span class="num">03</span><span class="nm">仓库上下文</span><span class="sb">Spec + 指令文件</span></div>
+            <span class="arw reveal d3">→</span>
+            <div class="node gh reveal d4"><span class="num">04</span><span class="nm">编码实现</span><span class="sb">Coding Agent</span></div>
+            <span class="arw reveal d4">→</span>
+            <div class="node gh reveal d5"><span class="num">05</span><span class="nm">PR 门禁</span><span class="sb">Review + Ruleset</span></div>
+            <span class="arw reveal d5">→</span>
+            <div class="node gh reveal d6"><span class="num">06</span><span class="nm">Agentic WF</span><span class="sb">测试 · 诊断</span></div>
+            <span class="arw reveal d6">→</span>
+            <div class="node gh reveal d7"><span class="num">07</span><span class="nm">CI / CD</span><span class="sb">构建 · 部署</span></div>
+            <span class="arw reveal d7">→</span>
+            <div class="node az reveal d8"><span class="num">08</span><span class="nm">Azure + SRE</span><span class="sb">承载 · 自愈</span></div>
+          </div>
+          <div class="legend reveal d8">
+            <span><i style="background:var(--zone-ot)"></i>OneTeam</span>
+            <span><i style="background:var(--zone-gh)"></i>GitHub 平台</span>
+            <span><i style="background:var(--zone-az)"></i>Azure 云</span>
+          </div>
+          <div class="loop reveal d8"><span class="lc">↻</span><span class="lt">闭环:<b>Azure SRE</b> 监测到异常 → 自动 <b>回写为新 Issue</b> → 回到 ② 需求,进入下一轮迭代。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 4 — 8 LAYERS ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Layers · 分层职责</div><div class="nav"><b>04</b> / 10</div></div>
+        <header class="shead"><span class="idx">04</span><h2>8 层职责一览</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="grid8">
+            <div class="lcard reveal d1"><span class="bignum">1</span><div class="h"><span class="dot"></span>项目管理</div><div class="role">需求源头:Feature → Story → PRD</div><div class="carrier">OneTeam 平台</div></div>
+            <div class="lcard reveal d2"><span class="bignum">2</span><div class="h"><span class="dot"></span>需求同步</div><div class="role">把需求同步为 GitHub Issue</div><div class="carrier">GitHub MCP → Issues (Epic/Story/PRD)</div></div>
+            <div class="lcard reveal d3"><span class="bignum">3</span><div class="h"><span class="dot"></span>仓库上下文</div><div class="role">多仓库托管,Spec 与代码同仓</div><div class="carrier">/spec/*.md + copilot-instructions.md</div></div>
+            <div class="lcard reveal d4"><span class="bignum">4</span><div class="h"><span class="dot"></span>编码实现</div><div class="role">领 Issue 自动开发、提 PR</div><div class="carrier">Copilot Coding Agent</div></div>
+            <div class="lcard reveal d5"><span class="bignum">5</span><div class="h"><span class="dot"></span>PR / 门禁</div><div class="role">AI 评审 + 平台级规则门禁</div><div class="carrier">Copilot Code Review + Branch Ruleset</div></div>
+            <div class="lcard reveal d6"><span class="bignum">6</span><div class="h"><span class="dot"></span>Agentic WF</div><div class="role">自动化测试 / 失败诊断 / 修复</div><div class="carrier">gh-aw: issue-triage · ci-doctor</div></div>
+            <div class="lcard reveal d7"><span class="bignum">7</span><div class="h"><span class="dot"></span>CI / CD</div><div class="role">构建 · 测试 · 扫描 · 打包 · 部署</div><div class="carrier">GitHub Actions: ci.yml + cd.yml</div></div>
+            <div class="lcard reveal d8"><span class="bignum">8</span><div class="h"><span class="dot"></span>Azure 云</div><div class="role">承载运行 + 自动化运维闭环</div><div class="carrier">App Service / ACA / AKS + SRE Agent</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 5 — DATA FLOW ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Flow · 数据流闭环</div><div class="nav"><b>05</b> / 10</div></div>
+        <header class="shead"><span class="idx">05</span><h2>数据流:一次迭代的闭环</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="steps">
+            <div class="step reveal d1"><div class="sn">01</div><div class="st">OneTeam 的 <b>PRD</b> 经 GitHub MCP <b>同步为 Issue</b>。</div></div>
+            <div class="step reveal d2"><div class="sn">02</div><div class="st">Issue 指派 <b>Coding Agent</b>,依 Spec 与指令文件写码、<b>开 PR</b>。</div></div>
+            <div class="step reveal d3"><div class="sn">03</div><div class="st">PR 触发 <b>Code Review + Ruleset</b> 门禁;<b>Agentic WF</b> 跑测试与诊断。</div></div>
+            <div class="step reveal d4"><div class="sn">04</div><div class="st">门禁通过,<b>CI/CD</b> 构建并 <b>部署到 Azure</b>。</div></div>
+            <div class="step hot reveal d5"><div class="sn">05</div><div class="st"><b>Azure SRE</b> 监控运行态,异常时 <b>自愈 + 回写 Issue</b>。</div></div>
+          </div>
+          <div class="loopbar reveal d6"><span class="k">闭环</span><span class="v">第 5 步的运维事件回写为新 Issue → 回到第 1 步,需求—交付—运维持续循环。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 6 — STATUS vs GAPS ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Status · 现状与差距</div><div class="nav"><b>06</b> / 10</div></div>
+        <header class="shead"><span class="idx">06</span><h2>现状与差距</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <table class="dtable">
+            <thead><tr><th style="width:130px">层</th><th>能力</th><th style="width:260px">载体</th><th style="width:210px">现状</th></tr></thead>
+            <tbody>
+              <tr class="reveal d1"><td class="layer">③</td><td>copilot-instructions.md</td><td>指令文件</td><td><span class="chip ok">✔ 已有</span> <span class="chip part">缺跨仓库</span></td></tr>
+              <tr class="reveal d1"><td class="layer">④</td><td>Copilot Coding Agent</td><td>Issue 指派</td><td><span class="chip ok">✔ 已具备</span></td></tr>
+              <tr class="reveal d2"><td class="layer">⑤</td><td>Ruleset + Copilot Code Review</td><td>分支规则</td><td><span class="chip ok">✔ 已有</span></td></tr>
+              <tr class="reveal d2"><td class="layer">⑥</td><td>Agentic Workflow</td><td>issue-triage · ci-doctor</td><td><span class="chip ok">✔ 已有</span></td></tr>
+              <tr class="reveal d3"><td class="layer">⑦</td><td>CI(ruff + pytest)</td><td>ci.yml</td><td><span class="chip ok">✔ 已有</span></td></tr>
+              <tr class="reveal d3"><td class="layer">—</td><td>Agent Merge</td><td>演示剧本</td><td><span class="chip ok">✔ 已覆盖</span></td></tr>
+              <tr class="reveal d4"><td class="layer">①</td><td>OneTeam → Issue 同步</td><td>GitHub MCP 服务</td><td><span class="chip gap">✕ 缺失</span></td></tr>
+              <tr class="reveal d4"><td class="layer">②</td><td>/spec 规范 + 跨仓库场景</td><td>目录 + 指令文件</td><td><span class="chip part">◐ 部分</span></td></tr>
+              <tr class="reveal d5"><td class="layer">⑦</td><td>CD 部署到 Azure</td><td>cd.yml + IaC</td><td><span class="chip gap">✕ 缺失</span></td></tr>
+              <tr class="reveal d5"><td class="layer">⑧</td><td>Azure SRE 自动化运维</td><td>SRE Agent</td><td><span class="chip gap">✕ 缺失</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 7 — WORK ITEMS A–C ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Backlog · 工作项 1/2</div><div class="nav"><b>07</b> / 10</div></div>
+        <header class="shead"><span class="idx">07</span><h2>实施工作项 · A–C</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="cols3">
+            <div class="wcol reveal d1">
+              <div class="wh">A<span class="tag">需求同步</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">层 ①</div>
+              <ul>
+                <li><span class="id">oneteam-issue-mapping</span><br>字段/状态映射 + 外部 ID 关联键</li>
+                <li><span class="id">issue-templates</span><br>PRD 结构化模板 + Label/Type 规范</li>
+                <li><span class="id">oneteam-sync-service</span><br>基于 GitHub MCP:创建/更新、幂等去重、回写 <span class="dz">(可 mock)</span></li>
+              </ul>
+            </div>
+            <div class="wcol reveal d2">
+              <div class="wh">B<span class="tag">仓库上下文</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">层 ② ③</div>
+              <ul>
+                <li><span class="id">spec-convention</span><br>/spec 目录规范 + Spec/PRD 模板</li>
+                <li><span class="id">copilot-instructions-crossrepo</span><br>指令文件增补跨仓库场景章节</li>
+                <li><span class="id opt">multi-repo-setup</span><br>第二示例仓库 / Copilot Space <span class="dz">(可选)</span></li>
+              </ul>
+            </div>
+            <div class="wcol reveal d3">
+              <div class="wh">C<span class="tag">门禁增强</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">层 ⑤</div>
+              <ul>
+                <li><span class="id">ruleset-cd-gate</span><br>Ruleset 的 required checks 纳入部署前置检查(产物 / 镜像扫描)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 8 — WORK ITEMS D–F ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Backlog · 工作项 2/2</div><div class="nav"><b>08</b> / 10</div></div>
+        <header class="shead"><span class="idx">08</span><h2>实施工作项 · D–F</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="cols3">
+            <div class="wcol reveal d1">
+              <div class="wh">D<span class="tag">CD 到 Azure</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">层 ⑦</div>
+              <ul>
+                <li><span class="id">azure-target-decision</span><br>目标选型 + 环境划分(dev/stg/prod)</li>
+                <li><span class="id">azure-iac</span><br>Bicep / Terraform 定义资源</li>
+                <li><span class="id opt">containerization</span><br>Dockerfile + 镜像仓库 <span class="dz">(ACA/AKS)</span></li>
+                <li><span class="id">github-azure-oidc</span><br>OIDC 联合身份 + 环境 secrets</li>
+                <li><span class="id">cd-workflow</span><br>cd.yml:登录 · 构建 · 部署 · 审批</li>
+              </ul>
+            </div>
+            <div class="wcol reveal d2">
+              <div class="wh">E<span class="tag">Azure SRE</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">层 ⑧</div>
+              <ul>
+                <li><span class="id">observability</span><br>App Insights / Monitor:指标 · 日志 · 告警</li>
+                <li><span class="id">azure-sre-agent</span><br>接入 SRE Agent:自动诊断 / 自愈</li>
+                <li><span class="id">sre-feedback-loop</span><br>事件回写 GitHub(建 Issue → 回到 ①)</li>
+              </ul>
+            </div>
+            <div class="wcol reveal d3">
+              <div class="wh">F<span class="tag">收尾</span></div>
+              <div class="wh" style="background:#f0f0f0;color:var(--muted);font-size:16px;font-weight:700;padding:8px 22px">跨层</div>
+              <ul>
+                <li><span class="id done">architecture-doc ✔</span><br>docs/architecture.md <span class="dz">(已完成)</span></li>
+                <li><span class="id">e2e-demo-script</span><br>更新 docs/DEMO.md,纳入同步 / CD / SRE 剧本</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 9 — ROADMAP ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Roadmap · 顺序与依赖</div><div class="nav"><b>09</b> / 10</div></div>
+        <header class="shead"><span class="idx">09</span><h2>实施顺序与依赖</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="phases">
+            <div class="phase reveal d1"><div class="pn">Phase 1</div><div class="pt">需求 + 上下文</div>
+              <ol><li>A 需求同步 <span class="m">映射→模板→同步</span></li><li>B 仓库上下文 <span class="m">/spec + 跨仓库</span></li></ol>
+              <div class="par">两组可并行</div>
+            </div>
+            <div class="phase reveal d2"><div class="pn">Phase 2</div><div class="pt">CD 到 Azure</div>
+              <ol><li>目标选型 <span class="m">azure-target-decision</span></li><li>IaC · OIDC · 容器</li><li>cd-workflow</li><li>ruleset-cd-gate</li></ol>
+              <div class="par">串行依赖链</div>
+            </div>
+            <div class="phase reveal d3"><div class="pn">Phase 3</div><div class="pt">Azure SRE</div>
+              <ol><li>observability</li><li>azure-sre-agent <span class="m">← CD + 可观测性</span></li><li>sre-feedback-loop</li></ol>
+              <div class="par">依赖 Phase 2 产出</div>
+            </div>
+            <div class="phase reveal d4"><div class="pn">Phase 4</div><div class="pt">收尾</div>
+              <ol><li>architecture-doc <span class="m">✔ 已完成</span></li><li>e2e-demo-script <span class="m">← 同步/CD/SRE</span></li></ol>
+              <div class="par">串联全链演示</div>
+            </div>
+          </div>
+          <div class="chain reveal d5"><span class="k">关键链</span><code>目标选型</code><span class="gt">→</span><code>IaC / OIDC / 容器</code><span class="gt">→</span><code>cd.yml</code><span class="gt">→</span><code>SRE Agent</code><span class="gt">→</span><code>回写闭环</code></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SLIDE 10 — ASSUMPTIONS + NEXT ===== -->
+    <section class="slide">
+      <div class="wrap">
+        <div class="chrome"><div class="kicker"><span class="sq"></span>Notes · 假设与下一步</div><div class="nav"><b>10</b> / 10</div></div>
+        <header class="shead"><span class="idx">10</span><h2>假设与下一步</h2><span class="tab wipe"></span></header>
+        <div class="body">
+          <div class="close">
+            <div class="asm">
+              <h3 class="reveal d1"><span class="sq"></span>假设与约束</h3>
+              <ul>
+                <li class="reveal d2">按「本仓库可演示的 Demo/脚手架」粒度;生产落地另行升级。</li>
+                <li class="reveal d3">OneTeam 若无开放 API,同步服务以 mock 数据源演示。</li>
+                <li class="reveal d4">Azure 目标未定,列为独立决策项,后续项依赖其结论。</li>
+                <li class="reveal d5">已有 ③④⑤⑥ + CI 不重复实现,仅按需增强。</li>
+              </ul>
+            </div>
+            <div class="nxt">
+              <h3 class="reveal d2"><span class="sq"></span>下一步</h3>
+              <div class="cta hot reveal d3"><div class="t">① 确定 Azure 部署目标</div><div class="d">选定 App Service / ACA / AKS → 解锁 D 层整条 CD 链。</div></div>
+              <div class="cta reveal d4"><div class="t">② 并行启动 A 层同步</div><div class="d">OneTeam → Issue 映射与模板,不依赖 Azure,可即刻开工。</div></div>
+              <div class="endline reveal d5">TaskFlow · GitHub Agentic SDLC · 2026</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Presentation chrome (outside the stage) -->
+<div class="deck-controls" aria-hidden="true">
+  <button id="prevBtn" title="上一页">‹</button>
+  <span id="counter">01 / 10</span>
+  <button id="nextBtn" title="下一页">›</button>
+</div>
+
+<!-- Inline editing affordance -->
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="编辑模式 (E)">✏️</button>
+<div class="edit-hint" id="editHint">编辑模式:点击文字修改 · Ctrl+S 保存导出</div>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   =========================================== */
+class Deck{
+  constructor(){
+    this.slides=[...document.querySelectorAll('.slide')];
+    this.stage=document.getElementById('deckStage');
+    this.i=0;this.total=this.slides.length;
+    this.counter=document.getElementById('counter');
+    this.progress=document.getElementById('progress');
+    this.setupScale();this.bind();this.show(0);
+  }
+  setupScale(){
+    const s=()=>{const f=Math.min(innerWidth/1920,innerHeight/1080);
+      this.stage.style.transform=`translate(${(innerWidth-1920*f)/2}px,${(innerHeight-1080*f)/2}px) scale(${f})`;};
+    s();addEventListener('resize',s);
+  }
+  pad(n){return String(n+1).padStart(2,'0');}
+  show(n){
+    this.i=Math.max(0,Math.min(n,this.total-1));
+    this.slides.forEach((sl,k)=>{sl.classList.toggle('active',k===this.i);sl.classList.toggle('visible',k===this.i);});
+    this.counter.textContent=`${this.pad(this.i)} / ${this.total}`;
+    this.progress.style.width=`${((this.i+1)/this.total)*100}%`;
+  }
+  next(){this.show(this.i+1);} prev(){this.show(this.i-1);}
+  bind(){
+    document.getElementById('nextBtn').onclick=()=>this.next();
+    document.getElementById('prevBtn').onclick=()=>this.prev();
+    addEventListener('keydown',e=>{
+      if(e.target.getAttribute&&e.target.getAttribute('contenteditable')==='true')return;
+      if(['ArrowRight',' ','PageDown','ArrowDown'].includes(e.key)){e.preventDefault();this.next();}
+      else if(['ArrowLeft','PageUp','ArrowUp'].includes(e.key)){e.preventDefault();this.prev();}
+      else if(e.key==='Home')this.show(0);
+      else if(e.key==='End')this.show(this.total-1);
+    });
+    let x0=null;
+    addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
+    addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;
+      if(Math.abs(dx)>60){dx<0?this.next():this.prev();}x0=null;},{passive:true});
+    let wl=0;addEventListener('wheel',e=>{const t=Date.now();if(t-wl<600)return;
+      if(Math.abs(e.deltaY)>30){wl=t;e.deltaY>0?this.next():this.prev();}},{passive:true});
+  }
+}
+const deck=new Deck();
+
+/* ===========================================
+   INLINE EDITING (E key / hover hotzone)
+   =========================================== */
+class Editor{
+  constructor(){
+    this.isActive=false;
+    this.sel='h1,h2,h3,p,li,td,th,.st,.role,.nm,.sb,.lt,.v,.lead,.small,.t,.d,.pt,.carrier,.endline';
+    this.toggle=document.getElementById('editToggle');
+    this.hint=document.getElementById('editHint');
+    this.load();
+  }
+  key(){return 'sdlc-deck-'+location.pathname;}
+  toggleMode(){
+    this.isActive=!this.isActive;
+    document.body.classList.toggle('editing',this.isActive);
+    this.toggle.classList.toggle('active',this.isActive);
+    this.hint.classList.toggle('show',this.isActive);
+    document.querySelectorAll(this.sel).forEach(el=>{
+      el.contentEditable=this.isActive;
+      if(this.isActive)el.addEventListener('input',this._save=()=>this.save());
+    });
+    if(!this.isActive)this.save();
+  }
+  save(){try{localStorage.setItem(this.key(),document.getElementById('deckStage').innerHTML);}catch(e){}}
+  load(){try{const d=localStorage.getItem(this.key());if(d)document.getElementById('deckStage').innerHTML=d;}catch(e){}}
+  export(){
+    const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download='architecture-slides.html';a.click();
+  }
+}
+const editor=new Editor();
+/* toggle button */
+document.getElementById('editToggle').addEventListener('click',()=>editor.toggleMode());
+/* hotzone hover with grace period */
+const hz=document.getElementById('editHotzone'),et=document.getElementById('editToggle');let ht=null;
+hz.addEventListener('mouseenter',()=>{clearTimeout(ht);et.classList.add('show');});
+hz.addEventListener('mouseleave',()=>{ht=setTimeout(()=>{if(!editor.isActive)et.classList.remove('show');},400);});
+et.addEventListener('mouseenter',()=>clearTimeout(ht));
+et.addEventListener('mouseleave',()=>{ht=setTimeout(()=>{if(!editor.isActive)et.classList.remove('show');},400);});
+hz.addEventListener('click',()=>editor.toggleMode());
+/* keyboard: E toggles edit, Ctrl/Cmd+S exports */
+addEventListener('keydown',e=>{
+  if((e.key==='e'||e.key==='E')&&!(e.target.getAttribute&&e.target.getAttribute('contenteditable')==='true'))editor.toggleMode();
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();editor.export();}
+});
+</script>
+</body>
+</html>
