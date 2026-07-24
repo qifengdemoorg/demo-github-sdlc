@@ -1,10 +1,15 @@
 """TaskFlow API - minimal task management service."""
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from app.models import Task, TaskCreate, TaskUpdate
 
 app = FastAPI(title="TaskFlow", version="0.1.0")
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 # In-memory store keeps the demo dependency-free.
 _tasks: dict[int, Task] = {}
@@ -16,6 +21,15 @@ def reset_store() -> None:
     global _next_id
     _tasks.clear()
     _next_id = 1
+
+
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    """Serve the simple web UI."""
+    index_file = _STATIC_DIR / "index.html"
+    if not index_file.is_file():
+        raise HTTPException(status_code=404, detail="UI not found")
+    return FileResponse(index_file)
 
 
 @app.get("/health")

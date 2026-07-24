@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "taskflow"
 version = "0.1.0"
@@ -18,6 +22,12 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.setuptools.package-data]
+app = ["static/index.html"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

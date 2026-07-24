@@ -22,6 +22,7 @@
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
+| GET | `/` | 简单 Web UI（任务管理界面） |
 | GET | `/health` | 健康检查 |
 | GET | `/tasks` | 任务列表 |
 | POST | `/tasks` | 创建任务 |
@@ -32,6 +33,9 @@
 > `Task` 模型当前只有 `title` / `done` —— **优先级、截止日期等扩展被刻意留作 Issue**，
 > 作为演示中 Coding Agent 的开发素材。
 
+访问根路径 `/` 即可打开一个零依赖的静态页面（`app/static/index.html`），
+支持添加、勾选完成、删除任务，全部通过上述 API 完成。
+
 ## 本地开发
 
 ```bash
@@ -40,13 +44,14 @@ pip install -e ".[dev]"
 
 pytest            # 运行测试
 ruff check .      # 代码检查
-uvicorn app.main:app --reload   # 启动服务 → http://127.0.0.1:8000/docs
+uvicorn app.main:app --reload   # 启动服务 → http://127.0.0.1:8000/ (UI) 或 /docs (API)
 ```
 
 ## 仓库结构
 
 ```
 app/                    # FastAPI 应用（main.py 路由，models.py 模型）
+app/static/             # 简单 Web UI（index.html）
 tests/                  # pytest 测试
 .github/workflows/
   ci.yml                # GitHub Actions CI
