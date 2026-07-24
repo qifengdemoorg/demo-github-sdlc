@@ -91,7 +91,7 @@
 
     <form id="create-form">
       <!-- maxlength mirrors TaskCreate.title max_length=200 in app/models.py -->
-      <label class="sr-only" for="title">任务标题</label>
+      <label class="sr-only" for="title">添加新任务</label>
       <input type="text" id="title" placeholder="添加新任务…" maxlength="200" autocomplete="off" />
       <button type="submit">添加</button>
     </form>
@@ -135,7 +135,10 @@
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = task.done;
-        checkbox.setAttribute("aria-label", `标记“${task.title}”为完成`);
+        checkbox.setAttribute(
+          "aria-label",
+          `标记“${task.title}”为${task.done ? "未完成" : "完成"}`,
+        );
         checkbox.addEventListener("change", () => toggleTask(task, checkbox.checked));
 
         const title = document.createElement("span");
