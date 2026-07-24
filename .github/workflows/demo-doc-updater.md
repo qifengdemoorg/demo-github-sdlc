@@ -2,8 +2,11 @@
 name: Demo Doc Updater
 description: Keep docs/DEMO.md in sync with newly merged code and recent issues
 on:
-  schedule: weekly on monday
+  pull_request:
+    types: [closed]
+    branches: [main]
   workflow_dispatch:
+if: github.event_name != 'pull_request' || (github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'docs/demo-doc-updater-'))
 permissions:
   contents: read
   issues: read
@@ -53,6 +56,11 @@ the one described here.
    cleanup script at the end.
 
 ## Step 2 — Collect what is new since that baseline
+
+This workflow normally runs right after a pull request is merged into the default
+branch. Treat that just-merged PR as the primary candidate, but ALWAYS scan the
+full range since the baseline — earlier merges may not have made it into the
+script yet.
 
 Using the baseline commit/date from step 1:
 
