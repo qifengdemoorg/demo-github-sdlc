@@ -71,6 +71,17 @@
     }
     .empty { color: var(--muted); text-align: center; padding: 24px; }
     .error { color: var(--danger); min-height: 20px; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
@@ -80,10 +91,11 @@
 
     <form id="create-form">
       <!-- maxlength mirrors TaskCreate.title max_length=200 in app/models.py -->
+      <label class="sr-only" for="title">任务标题</label>
       <input type="text" id="title" placeholder="添加新任务…" maxlength="200" autocomplete="off" />
       <button type="submit">添加</button>
     </form>
-    <div class="error" id="error"></div>
+    <div class="error" id="error" role="alert" aria-live="polite"></div>
 
     <ul id="tasks"></ul>
     <p class="empty" id="empty" hidden>暂无任务，添加一个吧。</p>
@@ -123,6 +135,7 @@
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = task.done;
+        checkbox.setAttribute("aria-label", `标记“${task.title}”为完成`);
         checkbox.addEventListener("change", () => toggleTask(task, checkbox.checked));
 
         const title = document.createElement("span");
