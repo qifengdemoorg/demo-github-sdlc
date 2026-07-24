@@ -3,7 +3,7 @@
 > 仓库：`qifengdemoorg/demo-github-sdlc` · 应用：**TaskFlow**（FastAPI 任务管理 API）
 > 总时长：约 30–40 分钟（含 Agent 执行等待，可穿插讲解）
 
-本剧本通过一个真实的功能迭代故事，串联 6 大 GitHub Agentic SDLC 能力：
+本剧本通过一个真实的功能迭代故事，串联 8 大 GitHub Agentic SDLC 能力：
 
 | 幕 | 能力 | 一句话看点 |
 |----|------|-----------|
@@ -14,6 +14,7 @@
 | 5 | Copilot Code Review | Ruleset 自动请求 Copilot 评审，Agent 响应修复 |
 | 6 | Agent Merge | 两个并行 Agent 分支冲突，AI 智能合并 |
 | 7 | Agentic Workflow ② | CI 失败后 AI 自动诊断根因并评论（彩蛋） |
+| 8 | Agentic Workflow ③ | `/add-tests` 斜杠命令自动补全 PR 测试覆盖（彩蛋） |
 
 ---
 
@@ -34,6 +35,9 @@ gh label list
 
 # 5. 没有遗留的演示 PR / Issue（如有，先跑文末的清理脚本）
 gh pr list; gh issue list
+
+# 6. （可选）确认 Demo Doc Updater 定时任务已注册（每周一自动同步剧本）
+gh workflow list | grep demo-doc-updater
 ```
 
 前置条件：
@@ -241,6 +245,33 @@ gh pr create --fill
 
 ---
 
+## 第 8 幕（彩蛋）：Test Writer —— 斜杠命令补全测试（约 3 分钟）
+
+**讲解点**：Agentic Workflow 不仅能响应事件，还能响应斜杠命令（slash command）——
+任何有权限的协作者在 PR 评论里输入 `/add-tests`，AI 就会自动分析覆盖缺口、补写测试、推送 commit。
+
+1. 打开第 2 幕 Coding Agent 提的任意一个 PR（或新建一个带改动但测试不完整的 PR）。
+2. 在 PR 评论框输入：
+
+```text
+/add-tests
+```
+
+3. 打开 **Actions** 标签页 → `Test Writer` workflow 正在运行（约 1–2 分钟）。
+4. 工作流完成后：
+   - PR 分支上新增一个 `test: add missing coverage via /add-tests` commit；
+   - PR 评论区出现 AI 摘要：覆盖缺口、新增用例列表、ruff/pytest 结果，
+     落款 `🧪 Automated tests by Test Writer (agentic workflow)`。
+5. 展示 `.github/workflows/test-writer.md` 源文件——"同样是自然语言指令，30 行定义一个斜杠命令"。
+
+> 💡 与第 1 幕（Issue Triage）对比：都是 Agentic Workflow，触发器不同——
+> 前者响应 `issues.opened` 事件，后者响应 `pull_request_comment` 上的 `/add-tests` 命令。
+
+> 🧯 兜底：若 Test Writer 排队较慢，先展示 `test-writer.md` 源文件讲解机制，
+> 再回头看 workflow run 结果。
+
+---
+
 ## 演示后清理
 
 ```bash
@@ -262,3 +293,5 @@ git push origin --delete demo/broken-test 2>/dev/null || true
   + Copilot 请求。
 - **为什么不用一个 Agent 串行做两个功能？** 并行是吞吐量优势；Agent Merge 解决并行的
   代价（冲突），两者配合才能规模化。
+- **剧本本身如何保持最新？** 仓库内置 `demo-doc-updater` Agentic Workflow，每周一自动扫描
+  新合并的 PR 与 Issue，更新本文件并提 PR，无需人工维护。
