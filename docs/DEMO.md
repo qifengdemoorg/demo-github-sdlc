@@ -36,7 +36,11 @@ gh label list
 # 5. 没有遗留的演示 PR / Issue（如有，先跑文末的清理脚本）
 gh pr list; gh issue list
 
-# 6. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
+# 6. Web UI 可访问（浏览器打开 http://localhost:8000/）
+uvicorn app.main:app --reload &
+curl -s http://localhost:8000/ | grep -q "TaskFlow" && echo "UI OK"
+
+# 7. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
 ```
 
@@ -44,6 +48,26 @@ gh workflow list | grep demo-doc-updater
 - 组织已启用 **Copilot Coding Agent** 与 **Copilot Code Review**（Business/Enterprise）
 - 仓库 Actions 已启用；Agentic Workflow 使用 Copilot 引擎（`copilot-requests: write`）
 - 演示者对仓库有 admin 权限
+
+---
+
+## 第 0.5 幕（可选）：展示 TaskFlow Web UI（约 1 分钟）
+
+**讲解点**：TaskFlow 不只是纯 API——Coding Agent 在实现后端功能的同时，也为它配套了一个简洁的
+浏览器界面，从 `GET /` 直接访问，可作为演示的视觉锚点。
+
+```bash
+# 启动服务（演示前已在后台运行）
+uvicorn app.main:app --reload &
+```
+
+在浏览器打开 **http://localhost:8000/**，展示：
+- 任务列表的实时渲染（调用 `GET /tasks`）
+- 新建任务后页面自动刷新（调用 `POST /tasks`）
+- 勾选完成状态、删除任务（调用 `PATCH` / `DELETE /tasks/{id}`）
+
+> 💡 Web UI 的静态文件位于 `app/static/index.html`，由 `GET /` 路由直接返回，
+> 无额外依赖——零配置，演示零风险。
 
 ---
 
@@ -121,6 +145,7 @@ gh pr checks <PR号> --watch
 
 - **Lint**（ruff）+ **Test**（pytest）两个 job
 - 给观众看 PR 页面的 Checks 区域全绿
+- 测试覆盖包含 UI 端点（`GET /` 返回 `index.html`）和所有 API 路由——人写的和 AI 写的代码走同一条门禁
 
 ---
 
