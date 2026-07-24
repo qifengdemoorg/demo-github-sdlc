@@ -26,7 +26,10 @@ def reset_store() -> None:
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
     """Serve the simple web UI."""
-    return FileResponse(_STATIC_DIR / "index.html")
+    index_file = _STATIC_DIR / "index.html"
+    if not index_file.is_file():
+        raise HTTPException(status_code=404, detail="UI not found")
+    return FileResponse(index_file)
 
 
 @app.get("/health")

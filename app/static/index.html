@@ -79,6 +79,7 @@
     <p class="subtitle">极简任务管理</p>
 
     <form id="create-form">
+      <!-- maxlength mirrors TaskCreate.title max_length=200 in app/models.py -->
       <input type="text" id="title" placeholder="添加新任务…" maxlength="200" autocomplete="off" />
       <button type="submit">添加</button>
     </form>

@@ -27,6 +27,14 @@ def test_index_serves_ui():
     assert "TaskFlow" in resp.text
 
 
+def test_index_missing_ui_returns_404(monkeypatch, tmp_path):
+    import app.main as main
+
+    monkeypatch.setattr(main, "_STATIC_DIR", tmp_path)
+    resp = client.get("/")
+    assert resp.status_code == 404
+
+
 def test_create_task():
     resp = client.post("/tasks", json={"title": "Write demo script"})
     assert resp.status_code == 201
