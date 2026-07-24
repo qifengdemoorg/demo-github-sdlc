@@ -1,6 +1,6 @@
 # GitHub Agentic SDLC 演示剧本
 
-> 仓库：`qifengdemoorg/demo-github-sdlc` · 应用：**TaskFlow**（FastAPI 任务管理 API）
+> 仓库：`qifengdemoorg/demo-github-sdlc` · 应用：**TaskFlow**（FastAPI 任务管理 API + 简易 Web UI）
 > 总时长：约 30–40 分钟（含 Agent 执行等待，可穿插讲解）
 
 本剧本通过一个真实的功能迭代故事，串联 8 大 GitHub Agentic SDLC 能力：
@@ -36,7 +36,12 @@ gh label list
 # 5. 没有遗留的演示 PR / Issue（如有，先跑文末的清理脚本）
 gh pr list; gh issue list
 
-# 6. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
+# 6. Web UI 可访问（本地启动后验证）
+# uvicorn app.main:app --reload &
+# curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/
+# 预期输出：200
+
+# 7. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
 ```
 
@@ -106,6 +111,28 @@ gh agent-task create --repo qifengdemoorg/demo-github-sdlc \
 
 > 🧯 兜底：预置分支 `fallback/priority` 已包含同款完整实现（14 个测试全绿），
 > Agent 卡住时一键开 PR 展示：`gh pr create --head fallback/priority --fill`
+
+---
+
+## 第 2.5 幕：展示 TaskFlow Web UI（约 1 分钟，可穿插）
+
+**讲解点**：Coding Agent 不只会写后端逻辑——PR #20 为 TaskFlow 增加了一个简洁的 Web 前端，
+无需 curl 即可直观展示任务的增删改查。
+
+```bash
+# 本地启动（若尚未运行）
+uvicorn app.main:app --reload
+```
+
+在浏览器打开 `http://localhost:8000/`，即可看到 TaskFlow 的 Web UI：
+
+- **创建任务**：在输入框填写标题，点击"添加"按钮
+- **完成任务**：勾选任务左侧的复选框（支持 aria 无障碍标签）
+- **删除任务**：点击任务右侧的删除按钮
+
+> 💡 适合在等待 Coding Agent 或 CI 跑完时穿插演示，让观众看到"活着的"应用。
+> UI 源文件 `app/static/index.html` 由 Copilot Coding Agent 在 PR #20 中完成，
+> 同样经过了 Ruleset + CI + Code Review 全流程。
 
 ---
 
