@@ -20,6 +20,13 @@ def test_health():
     assert resp.json() == {"status": "ok"}
 
 
+def test_index_serves_ui():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert "TaskFlow" in resp.text
+
+
 def test_create_task():
     resp = client.post("/tasks", json={"title": "Write demo script"})
     assert resp.status_code == 201

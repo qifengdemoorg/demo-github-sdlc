@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --border: #e1e4e8;
+      --text: #24292f;
+      --muted: #6a737d;
+      --accent: #0969da;
+      --danger: #cf222e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main {
+      max-width: 640px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    p.subtitle { color: var(--muted); margin-top: 0; }
+    form {
+      display: flex;
+      gap: 8px;
+      margin: 24px 0 16px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    button {
+      padding: 10px 16px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    li .title { flex: 1; }
+    li.done .title { text-decoration: line-through; color: var(--muted); }
+    li .id { color: var(--muted); font-size: 13px; }
+    .delete {
+      background: transparent;
+      color: var(--danger);
+      border-color: var(--border);
+    }
+    .empty { color: var(--muted); text-align: center; padding: 24px; }
+    .error { color: var(--danger); min-height: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TaskFlow</h1>
+    <p class="subtitle">极简任务管理</p>
+
+    <form id="create-form">
+      <input type="text" id="title" placeholder="添加新任务…" maxlength="200" autocomplete="off" />
+      <button type="submit">添加</button>
+    </form>
+    <div class="error" id="error"></div>
+
+    <ul id="tasks"></ul>
+    <p class="empty" id="empty" hidden>暂无任务，添加一个吧。</p>
+  </main>
+
+  <script>
+    const API = "";
+    const listEl = document.getElementById("tasks");
+    const emptyEl = document.getElementById("empty");
+    const errorEl = document.getElementById("error");
+    const form = document.getElementById("create-form");
+    const titleInput = document.getElementById("title");
+
+    function showError(msg) {
+      errorEl.textContent = msg || "";
+    }
+
+    async function loadTasks() {
+      showError("");
+      try {
+        const resp = await fetch(`${API}/tasks`);
+        if (!resp.ok) throw new Error("加载任务失败");
+        const tasks = await resp.json();
+        render(tasks);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function render(tasks) {
+      listEl.innerHTML = "";
+      emptyEl.hidden = tasks.length > 0;
+      for (const task of tasks) {
+        const li = document.createElement("li");
+        if (task.done) li.classList.add("done");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+        checkbox.addEventListener("change", () => toggleTask(task, checkbox.checked));
+
+        const title = document.createElement("span");
+        title.className = "title";
+        title.textContent = task.title;
+
+        const id = document.createElement("span");
+        id.className = "id";
+        id.textContent = `#${task.id}`;
+
+        const del = document.createElement("button");
+        del.className = "delete";
+        del.textContent = "删除";
+        del.addEventListener("click", () => deleteTask(task.id));
+
+        li.append(checkbox, title, id, del);
+        listEl.appendChild(li);
+      }
+    }
+
+    async function createTask(title) {
+      showError("");
+      try {
+        const resp = await fetch(`${API}/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        });
+        if (!resp.ok) throw new Error("创建任务失败");
+        await loadTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function toggleTask(task, done) {
+      showError("");
+      try {
+        const resp = await fetch(`${API}/tasks/${task.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done }),
+        });
+        if (!resp.ok) throw new Error("更新任务失败");
+        await loadTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function deleteTask(id) {
+      showError("");
+      try {
+        const resp = await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
+        if (!resp.ok) throw new Error("删除任务失败");
+        await loadTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      if (!title) return;
+      createTask(title);
+      titleInput.value = "";
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>
