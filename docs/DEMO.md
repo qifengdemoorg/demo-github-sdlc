@@ -36,7 +36,7 @@ gh label list
 # 5. 没有遗留的演示 PR / Issue（如有，先跑文末的清理脚本）
 gh pr list; gh issue list
 
-# 6. （可选）确认 Demo Doc Updater 定时任务已注册（每周一自动同步剧本）
+# 6. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
 ```
 
@@ -293,5 +293,5 @@ git push origin --delete demo/broken-test 2>/dev/null || true
   + Copilot 请求。
 - **为什么不用一个 Agent 串行做两个功能？** 并行是吞吐量优势；Agent Merge 解决并行的
   代价（冲突），两者配合才能规模化。
-- **剧本本身如何保持最新？** 仓库内置 `demo-doc-updater` Agentic Workflow，每周一自动扫描
-  新合并的 PR 与 Issue，更新本文件并提 PR，无需人工维护。
+- **剧本本身如何保持最新？** 仓库内置 `demo-doc-updater` Agentic Workflow，每当有 PR
+  合入 main 即自动扫描新合并的 PR 与 Issue，更新本文件并提 PR，无需人工维护。
