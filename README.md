@@ -33,7 +33,8 @@
 > `Task` 模型当前只有 `title` / `done` —— **优先级、截止日期等扩展被刻意留作 Issue**，
 > 作为演示中 Coding Agent 的开发素材。
 
-访问根路径 `/` 即可打开一个零依赖的静态页面（`app/static/index.html`），
+访问根路径 `/` 即可打开一个基于 **Vue 3** 的单页界面（`app/static/index.html`，
+Vue 运行时已本地内置于 `app/static/vendor/`，零外部依赖），
 支持添加、勾选完成、删除任务，全部通过上述 API 完成。
 
 ## 本地开发
@@ -51,7 +52,7 @@ uvicorn app.main:app --reload   # 启动服务 → http://127.0.0.1:8000/ (UI) �
 
 ```
 app/                    # FastAPI 应用（main.py 路由，models.py 模型）
-app/static/             # 简单 Web UI（index.html）
+app/static/             # Vue 3 Web UI（index.html + vendor/ 内置运行时）
 tests/                  # pytest 测试
 .github/workflows/
   ci.yml                # GitHub Actions CI

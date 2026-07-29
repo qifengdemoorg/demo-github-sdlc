@@ -66,8 +66,8 @@ uvicorn app.main:app --reload &
 - 新建任务后页面自动刷新（调用 `POST /tasks`）
 - 勾选完成状态、删除任务（调用 `PATCH` / `DELETE /tasks/{id}`）
 
-> 💡 Web UI 的静态文件位于 `app/static/index.html`，由 `GET /` 路由直接返回，
-> 无额外依赖——零配置，演示零风险。
+> 💡 Web UI 基于 **Vue 3**，静态文件位于 `app/static/index.html`（由 `GET /` 路由直接返回），
+> Vue 运行时内置于 `app/static/vendor/`（`/static` 静态挂载提供）——零外部依赖，演示零风险。
 
 ---
 

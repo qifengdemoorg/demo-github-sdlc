@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TaskFlow</title>
+  <!-- Vue 3 global build vendored locally keeps the demo dependency-free. -->
+  <script src="/static/vendor/vue.global.prod.js"></script>
   <style>
     :root {
       --bg: #f4f5f7;
@@ -85,133 +87,116 @@
   </style>
 </head>
 <body>
-  <main>
+  <main id="app">
     <h1>TaskFlow</h1>
     <p class="subtitle">极简任务管理</p>
 
-    <form id="create-form">
+    <form @submit.prevent="onSubmit">
       <!-- maxlength mirrors TaskCreate.title max_length=200 in app/models.py -->
       <label class="sr-only" for="title">添加新任务</label>
-      <input type="text" id="title" placeholder="添加新任务…" maxlength="200" autocomplete="off" />
+      <input
+        type="text"
+        id="title"
+        v-model="newTitle"
+        placeholder="添加新任务…"
+        maxlength="200"
+        autocomplete="off"
+      />
       <button type="submit">添加</button>
     </form>
-    <div class="error" id="error" role="alert" aria-live="polite"></div>
+    <div class="error" role="alert" aria-live="polite">{{ error }}</div>
 
-    <ul id="tasks"></ul>
-    <p class="empty" id="empty" hidden>暂无任务，添加一个吧。</p>
+    <ul>
+      <li v-for="task in tasks" :key="task.id" :class="{ done: task.done }">
+        <input
+          type="checkbox"
+          :checked="task.done"
+          :aria-label="`标记“${task.title}”为${task.done ? '未完成' : '完成'}`"
+          @change="toggleTask(task, $event.target.checked)"
+        />
+        <span class="title">{{ task.title }}</span>
+        <span class="id">#{{ task.id }}</span>
+        <button class="delete" @click="deleteTask(task.id)">删除</button>
+      </li>
+    </ul>
+    <p class="empty" v-if="tasks.length === 0">暂无任务，添加一个吧。</p>
   </main>
 
   <script>
+    const { createApp } = Vue;
     const API = "";
-    const listEl = document.getElementById("tasks");
-    const emptyEl = document.getElementById("empty");
-    const errorEl = document.getElementById("error");
-    const form = document.getElementById("create-form");
-    const titleInput = document.getElementById("title");
 
-    function showError(msg) {
-      errorEl.textContent = msg || "";
-    }
-
-    async function loadTasks() {
-      showError("");
-      try {
-        const resp = await fetch(`${API}/tasks`);
-        if (!resp.ok) throw new Error("加载任务失败");
-        const tasks = await resp.json();
-        render(tasks);
-      } catch (err) {
-        showError(err.message);
-      }
-    }
-
-    function render(tasks) {
-      listEl.innerHTML = "";
-      emptyEl.hidden = tasks.length > 0;
-      for (const task of tasks) {
-        const li = document.createElement("li");
-        if (task.done) li.classList.add("done");
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = task.done;
-        checkbox.setAttribute(
-          "aria-label",
-          `标记“${task.title}”为${task.done ? "未完成" : "完成"}`,
-        );
-        checkbox.addEventListener("change", () => toggleTask(task, checkbox.checked));
-
-        const title = document.createElement("span");
-        title.className = "title";
-        title.textContent = task.title;
-
-        const id = document.createElement("span");
-        id.className = "id";
-        id.textContent = `#${task.id}`;
-
-        const del = document.createElement("button");
-        del.className = "delete";
-        del.textContent = "删除";
-        del.addEventListener("click", () => deleteTask(task.id));
-
-        li.append(checkbox, title, id, del);
-        listEl.appendChild(li);
-      }
-    }
-
-    async function createTask(title) {
-      showError("");
-      try {
-        const resp = await fetch(`${API}/tasks`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title }),
-        });
-        if (!resp.ok) throw new Error("创建任务失败");
-        await loadTasks();
-      } catch (err) {
-        showError(err.message);
-      }
-    }
-
-    async function toggleTask(task, done) {
-      showError("");
-      try {
-        const resp = await fetch(`${API}/tasks/${task.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ done }),
-        });
-        if (!resp.ok) throw new Error("更新任务失败");
-        await loadTasks();
-      } catch (err) {
-        showError(err.message);
-      }
-    }
-
-    async function deleteTask(id) {
-      showError("");
-      try {
-        const resp = await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
-        if (!resp.ok) throw new Error("删除任务失败");
-        await loadTasks();
-      } catch (err) {
-        showError(err.message);
-      }
-    }
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const title = titleInput.value.trim();
-      if (!title) {
-        showError("任务标题不能为空。");
-        return;
-      }
-      createTask(title);
-      titleInput.value = "";
-    });
-
-    loadTasks();
+    createApp({
+      data() {
+        return {
+          tasks: [],
+          newTitle: "",
+          error: "",
+        };
+      },
+      methods: {
+        async loadTasks() {
+          this.error = "";
+          try {
+            const resp = await fetch(`${API}/tasks`);
+            if (!resp.ok) throw new Error("加载任务失败");
+            this.tasks = await resp.json();
+          } catch (err) {
+            this.error = err.message;
+          }
+        },
+        onSubmit() {
+          const title = this.newTitle.trim();
+          if (!title) {
+            this.error = "任务标题不能为空。";
+            return;
+          }
+          this.createTask(title);
+          this.newTitle = "";
+        },
+        async createTask(title) {
+          this.error = "";
+          try {
+            const resp = await fetch(`${API}/tasks`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title }),
+            });
+            if (!resp.ok) throw new Error("创建任务失败");
+            await this.loadTasks();
+          } catch (err) {
+            this.error = err.message;
+          }
+        },
+        async toggleTask(task, done) {
+          this.error = "";
+          try {
+            const resp = await fetch(`${API}/tasks/${task.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ done }),
+            });
+            if (!resp.ok) throw new Error("更新任务失败");
+            await this.loadTasks();
+          } catch (err) {
+            this.error = err.message;
+          }
+        },
+        async deleteTask(id) {
+          this.error = "";
+          try {
+            const resp = await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
+            if (!resp.ok) throw new Error("删除任务失败");
+            await this.loadTasks();
+          } catch (err) {
+            this.error = err.message;
+          }
+        },
+      },
+      mounted() {
+        this.loadTasks();
+      },
+    }).mount("#app");
   </script>
 </body>
 </html>
