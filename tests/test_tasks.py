@@ -25,6 +25,15 @@ def test_index_serves_ui():
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")
     assert "TaskFlow" in resp.text
+    # UI is a Vue 3 single-page app that loads the vendored runtime.
+    assert "/static/vendor/vue.global.prod.js" in resp.text
+
+
+def test_static_serves_vendored_vue():
+    resp = client.get("/static/vendor/vue.global.prod.js")
+    assert resp.status_code == 200
+    assert "javascript" in resp.headers["content-type"]
+    assert "Vue" in resp.text
 
 
 def test_index_missing_ui_returns_404(monkeypatch, tmp_path):

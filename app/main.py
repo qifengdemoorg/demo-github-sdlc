@@ -4,12 +4,16 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.models import Task, TaskCreate, TaskUpdate
 
 app = FastAPI(title="TaskFlow", version="0.1.0")
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+# Serve vendored assets (e.g. the Vue runtime) so the UI stays dependency-free.
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 # In-memory store keeps the demo dependency-free.
 _tasks: dict[int, Task] = {}
