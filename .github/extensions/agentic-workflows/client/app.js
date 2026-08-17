@@ -38,7 +38,15 @@ function inlineMd(text) {
     });
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
+        try {
+            const url = new URL(href.replaceAll("&amp;", "&"), window.location.href);
+            if (!["http:", "https:"].includes(url.protocol)) return label;
+            return `<a href="${esc(url.href)}" target="_blank" rel="noreferrer">${label}</a>`;
+        } catch {
+            return label;
+        }
+    });
     return html;
 }
 
