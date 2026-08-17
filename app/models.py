@@ -5,7 +5,7 @@ The Task model is intentionally minimal. Planned extensions (tracked as issues):
 - due_date field with overdue queries
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class TaskCreate(BaseModel):
@@ -19,6 +19,14 @@ class TaskUpdate(BaseModel):
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
     done: bool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_none(cls, data: dict) -> dict:
+        for field in ("title", "done"):
+            if field in data and data[field] is None:
+                raise ValueError(f"'{field}' must not be null")
+        return data
 
 
 class Task(BaseModel):
