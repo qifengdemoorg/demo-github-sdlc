@@ -16,6 +16,7 @@
 | 7 | Agentic Workflow ② | CI 失败后 AI 自动诊断根因并评论（彩蛋） |
 | 8 | Agentic Workflow ③ | `/add-tests` 斜杠命令自动补全 PR 测试覆盖（彩蛋） |
 | 9 | Agentic Workflow ④ | `enhancement` 标签自动派发规划，AI 产出实现计划（彩蛋） |
+| 9 | Agentic Workflow ④ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
 
 ---
 
@@ -43,6 +44,9 @@ curl -s http://localhost:8000/ | grep -q "TaskFlow" && echo "UI OK"
 
 # 7. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
+
+# 8. （可选）确认 Bug Fix Pipeline 已启用（第 9 幕）
+gh workflow list | grep -E "fix-dispatcher|bug-fixer"
 ```
 
 前置条件：
@@ -344,6 +348,61 @@ gh issue edit <N> --add-label enhancement
 > 🧯 兜底：若判定为 DECLINE，直接把它当作演示内容讲——展示评论里"需要补充什么"的具体建议，
 > 再补全 Issue 描述后 `gh issue edit <N> --remove-label enhancement --add-label enhancement`
 > 重新触发。
+## 第 9 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
+
+**讲解点**：Agentic Workflow 可以跨工作流编排（dispatch-workflow）——Fix Dispatcher 先做
+"值不值得自动修"的判断，再按需触发 Bug Fixer，形成**判断 → 修复 → Draft PR** 三段式流水线。
+这是 AI 编排 AI 的跨运行协同模式，与第 2 幕 Coding Agent 的内联子 Agent 模式形成互补。
+
+**演示步骤**：
+
+1. 创建一个描述清晰、可复现的 bug Issue：
+
+```bash
+gh issue create \
+  --title "PATCH /tasks/{id} ignores unknown fields silently" \
+  --body "Sending extra unknown fields in the request body returns 200 OK instead of 422.
+
+Steps to reproduce:
+1. POST /tasks to create a task (note the id)
+2. PATCH /tasks/{id} with body: {\"title\": \"x\", \"foo\": \"bar\"}
+3. Response is 200 OK — the unknown field should be rejected.
+
+Expected: 422 Unprocessable Entity. Actual: 200 OK with silent ignore."
+```
+
+2. 给 Issue 打上 `bug` 标签（Fix Dispatcher 仅在此标签时唤醒）：
+
+```bash
+gh issue edit <Issue号> --add-label bug
+```
+
+3. 打开 **Actions** 标签页 → `Fix Dispatcher` workflow 正在运行（约 1 分钟）。
+   - 展示 `fix-dispatcher.md`——"这是只读的判断层，只有确认可自动修才会往下走"。
+   - Dispatcher 判断通过后，自动给 Issue 打 `auto-fix:queued` 标签，并触发 `Bug Fixer`。
+
+4. `Bug Fixer` 随即启动（新的 `workflow_dispatch` run）——展示它：
+   - 从 main 切新分支
+   - 复现 bug、跑红色基线测试
+   - 调用 `taskflow-bug-fixer` custom agent 写修复代码
+   - 验证修复、跑绿、提 **Draft PR**（标题带 `[auto-fix]` 前缀，标签 `ai-generated`）
+
+5. 打开生成的 Draft PR，展示：
+   - 完整的修复 diff
+   - 测试覆盖从红变绿
+   - 人类 Review → 点 **Ready for review** → 按正常流程合并
+
+> 💡 与第 2 幕对比：Coding Agent 是人类指派给 AI 一个功能任务；Bug Fix Pipeline 是
+> AI 判断 AI、AI 触发 AI——全程无人工介入，直到 Draft PR 出现。
+
+> 💡 `taskflow-bug-fixer` custom agent 文件（`.github/agents/taskflow-bug-fixer.md`）
+> 既被 Bug Fixer workflow 导入，也可在 IDE 内直接使用——人和自动化共享同一套领域规范。
+
+> 🧯 兜底：若 Dispatcher 判断 Issue 描述不够具体而拒绝（Issue 会被打 `auto-fix:declined`），
+> 展示拒绝评论中的原因，丰富 Issue 描述后再加 `bug` 标签重试；或直接手动触发 Bug Fixer：
+> ```bash
+> gh workflow run bug-fixer.md -f issue_number=<Issue号>
+> ```
 
 ---
 
@@ -368,5 +427,7 @@ git push origin --delete demo/broken-test 2>/dev/null || true
   + Copilot 请求。
 - **为什么不用一个 Agent 串行做两个功能？** 并行是吞吐量优势；Agent Merge 解决并行的
   代价（冲突），两者配合才能规模化。
+- **Bug Fix Pipeline 怎么保证安全？** Fix Dispatcher 主 job 只读，只有"确定可修"才触发 Bug Fixer；
+  Bug Fixer 产出的是 Draft PR，仍需人类 Review 与 Approve——AI 只是加快了从 bug 报告到 PR 的链路。
 - **剧本本身如何保持最新？** 仓库内置 `demo-doc-updater` Agentic Workflow，每当有 PR
   合入 main 即自动扫描新合并的 PR 与 Issue，更新本文件并提 PR，无需人工维护。
