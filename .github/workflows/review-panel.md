@@ -26,8 +26,8 @@ tools:
 safe-outputs:
   staged: true
   add-labels:
-    # NOTE: these four labels must exist in the repository before `staged: true`
-    # is removed — add-labels does not create them, and will fail on a missing label.
+    # These four labels are provisioned in the repository. add-labels does not
+    # create missing labels, so keep them in sync if this list changes.
     allowed:
       - "review:clean"
       - "needs-validation"
@@ -43,6 +43,10 @@ safe-outputs:
     max: 4
   add-comment:
     max: 1
+    # synchronize reruns this workflow on every push; minimize the superseded
+    # verdict (as `outdated`, the default reason) so contradictory reviews do
+    # not stack up on the PR.
+    hide-older-comments: true
 ---
 
 # Review Panel
