@@ -18,11 +18,11 @@ tools:
     mode: gh-proxy
     toolsets: [default]
   bash:
-    - "git *"
-    - "ls *"
-    - "cat *"
-    - "grep *"
-    - "find *"
+    - "git fetch:*"
+    - "git diff:*"
+    - "ls:*"
+    - "cat:*"
+    - "grep:*"
 safe-outputs:
   staged: true
   add-labels:
