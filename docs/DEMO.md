@@ -15,6 +15,7 @@
 | 6 | Agent Merge | 两个并行 Agent 分支冲突，AI 智能合并 |
 | 7 | Agentic Workflow ② | CI 失败后 AI 自动诊断根因并评论（彩蛋） |
 | 8 | Agentic Workflow ③ | `/add-tests` 斜杠命令自动补全 PR 测试覆盖（彩蛋） |
+| 9 | Agentic Workflow ④ | `enhancement` 标签自动派发规划，AI 产出实现计划（彩蛋） |
 | 9 | Agentic Workflow ④ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
 
 ---
@@ -301,6 +302,52 @@ gh pr create --fill
 
 ---
 
+## 第 9 幕（彩蛋）：Plan Writer —— enhancement 自动出实现计划（约 4 分钟）
+
+**讲解点**：不是所有 Issue 都该直接交给 Coding Agent 写代码。含糊的需求先要有**计划**。
+这条链路做的就是这件事：打上 `enhancement` 标签 → AI 判断值不值得规划 → 值得就派发一个
+Planner，读代码后产出可执行的实现计划，作为评论回写到 Issue。
+
+链路与 bug 链路完全对称：
+
+```text
+issue-triage ──label: bug─────────> fix-dispatcher  ──dispatch──> bug-fixer   （改代码，开 PR）
+issue-triage ──label: enhancement─> plan-dispatcher ──dispatch──> plan-writer （只读，出计划）
+```
+
+1. 新建一个功能请求 Issue（或复用第 1 幕被 triage 成 `enhancement` 的那个）：
+
+```bash
+gh issue create --title "支持按截止日期筛选任务" \
+  --body "希望 GET /tasks 能只返回今天之前到期的任务，方便每天开工时先看逾期项。"
+gh issue edit <N> --add-label enhancement
+```
+
+2. 打开 **Actions** → `Plan Dispatcher` 运行（约 1–2 分钟）：
+   - 判定为 PLAN → 打 `plan:queued` 标签 + 一条结论评论，落款
+     `🧭 Screened by Plan Dispatcher (agentic workflow)`；
+   - 判定为 DECLINE → 打 `plan:declined`，评论里写清"还缺什么才能进入规划"——
+     **这一半同样值得展示**：AI 的价值不只是产出，也包括拒绝含糊需求。
+
+3. 紧接着 `Plan Writer` 被派发运行（约 2–3 分钟），在 Issue 上追加一条实现计划评论：
+   目标 / 非目标 → 数据模型变更 → API 契约变更（是否破坏性）→ 分文件实现步骤 →
+   测试计划（含错误路径）→ 风险与开放问题 → 验收标准，落款
+   `🗺️ Planned by Plan Writer (agentic workflow)`，并打上 `plan:ready`。
+
+4. 展示 `.github/agents/taskflow-planner.md`——"计划的**格式与纪律**被抽成一个可复用的
+   agent 文件，用 `imports:` 引入；workflow 本身只描述这次运行的机制"。
+   这与第 2 幕 `taskflow-bug-fixer.md` 的用法完全一致。
+
+5. 收尾动作：拿着这份计划，把 Issue 指派给 Copilot Coding Agent（回到第 2 幕）——
+   Agent 拿到的不再是一句含糊的需求，而是一份带验收标准的计划。
+
+> 💡 关键设计：Plan Writer **全程只读**——没有 `edit` 工具，没有 `create-pull-request`
+> safe output。它唯一能做的写操作就是发一条评论、打一个标签。规划与实现分离，是这条链路
+> 敢于自动跑的前提。
+
+> 🧯 兜底：若判定为 DECLINE，直接把它当作演示内容讲——展示评论里"需要补充什么"的具体建议，
+> 再补全 Issue 描述后 `gh issue edit <N> --remove-label enhancement --add-label enhancement`
+> 重新触发。
 ## 第 9 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
 
 **讲解点**：Agentic Workflow 可以跨工作流编排（dispatch-workflow）——Fix Dispatcher 先做

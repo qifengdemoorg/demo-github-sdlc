@@ -13,8 +13,9 @@
 | 4 | **PR Ruleset** | main 分支强制 PR、强制状态检查 |
 | 5 | **Copilot Code Review** | Ruleset 自动请求 Copilot 评审每个 PR |
 | 6 | **Agent Merge** | 并行 Agent 分支的 AI 语义级冲突合并 |
+| 7 | **Agentic 规划链路** | Issue 打 `enhancement` 标签后，`plan-dispatcher` → `plan-writer` 自动产出实现计划评论 |
 
-👉 **完整演示剧本见 [docs/DEMO.md](docs/DEMO.md)**（7 幕，含命令、预期效果与兜底方案）。
+👉 **完整演示剧本见 [docs/DEMO.md](docs/DEMO.md)**（9 幕，含命令、预期效果与兜底方案）。
 
 ## TaskFlow 应用
 
@@ -58,6 +59,22 @@ tests/                  # pytest 测试
   issue-triage.md       # Agentic workflow 源文件（自然语言）
   issue-triage.lock.yml # gh aw compile 产物
   ci-doctor.md / .lock.yml
+  fix-dispatcher.md → bug-fixer.md      # bug 链路：判定 → 改代码开 PR
+  plan-dispatcher.md → plan-writer.md   # enhancement 链路：判定 → 出实现计划
+.github/agents/         # 可复用的 agent 指令，workflow 用 imports: 引入
+  taskflow-bug-fixer.md # 修复纪律与领域知识
+  taskflow-planner.md   # 规划纪律与计划模板
 .github/copilot-instructions.md  # Coding Agent / Code Review 自定义指令
 docs/DEMO.md            # 演示剧本
 ```
+
+### Agentic 工作流链路
+
+```text
+issue-triage ──label: bug─────────> fix-dispatcher  ──dispatch──> bug-fixer   （改代码，开 PR）
+issue-triage ──label: enhancement─> plan-dispatcher ──dispatch──> plan-writer （只读，出计划）
+```
+
+两条链路同构：前一段是**判定门**（三态 PLAN/DECLINE/UNSURE，存疑即拒），后一段是**执行者**。
+Plan Writer 全程只读——不给 `edit` 工具、不产出 PR，唯一的写操作是一条计划评论加一个
+`plan:ready` / `plan:declined` 标签。
