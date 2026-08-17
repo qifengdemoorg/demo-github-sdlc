@@ -15,7 +15,7 @@
 | 6 | **Agent Merge** | 并行 Agent 分支的 AI 语义级冲突合并 |
 | 7 | **Agentic 规划链路** | Issue 打 `enhancement` 标签后，`plan-dispatcher` → `plan-writer` 自动产出实现计划评论 |
 
-👉 **完整演示剧本见 [docs/DEMO.md](docs/DEMO.md)**（7 幕，含命令、预期效果与兜底方案）。
+👉 **完整演示剧本见 [docs/DEMO.md](docs/DEMO.md)**（9 幕，含命令、预期效果与兜底方案）。
 
 ## TaskFlow 应用
 
