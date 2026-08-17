@@ -84,3 +84,15 @@ def test_delete_task():
     resp = client.delete("/tasks/1")
     assert resp.status_code == 204
     assert client.get("/tasks/1").status_code == 404
+
+
+def test_patch_title_null_returns_422():
+    client.post("/tasks", json={"title": "Original"})
+    resp = client.patch("/tasks/1", json={"title": None})
+    assert resp.status_code == 422
+
+
+def test_patch_done_null_returns_422():
+    client.post("/tasks", json={"title": "Original"})
+    resp = client.patch("/tasks/1", json={"done": None})
+    assert resp.status_code == 422
