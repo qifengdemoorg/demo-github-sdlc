@@ -3,7 +3,7 @@
 > 仓库：`qifengdemoorg/demo-github-sdlc` · 应用：**TaskFlow**（FastAPI 任务管理 API）
 > 总时长：约 30–40 分钟（含 Agent 执行等待，可穿插讲解）
 
-本剧本通过一个真实的功能迭代故事，串联 9 大 GitHub Agentic SDLC 能力：
+本剧本通过一个真实的功能迭代故事，串联 11 大 GitHub Agentic SDLC 能力：
 
 | 幕 | 能力 | 一句话看点 |
 |----|------|-----------|
@@ -16,7 +16,8 @@
 | 7 | Agentic Workflow ② | CI 失败后 AI 自动诊断根因并评论（彩蛋） |
 | 8 | Agentic Workflow ③ | `/add-tests` 斜杠命令自动补全 PR 测试覆盖（彩蛋） |
 | 9 | Agentic Workflow ④ | `enhancement` 标签自动派发规划，AI 产出实现计划（彩蛋） |
-| 9 | Agentic Workflow ④ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
+| 10 | Agentic Workflow ⑤ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
+| 11 | Agentic Workflow ⑥ | Review Panel：PR 上传即触发，4 个内联子代理并发审查（校验缺口、测试盲区、API 契约）（彩蛋） |
 
 ---
 
@@ -45,8 +46,14 @@ curl -s http://localhost:8000/ | grep -q "TaskFlow" && echo "UI OK"
 # 7. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
 
-# 8. （可选）确认 Bug Fix Pipeline 已启用（第 9 幕）
+# 8. （可选）确认 Bug Fix Pipeline 已启用（第 10 幕）
 gh workflow list | grep -E "fix-dispatcher|bug-fixer"
+
+# 9. （可选）确认 Review Panel 已启用（第 11 幕）
+gh workflow list | grep review-panel
+
+# 10. （可选）在 Copilot 面板打开 Agentic Workflows Canvas——可视化仓库中所有 agentic workflow 的触发→工具→子代理→输出链路
+#     Extensions → agentic-workflows → 打开 Canvas
 ```
 
 前置条件：
@@ -348,7 +355,7 @@ gh issue edit <N> --add-label enhancement
 > 🧯 兜底：若判定为 DECLINE，直接把它当作演示内容讲——展示评论里"需要补充什么"的具体建议，
 > 再补全 Issue 描述后 `gh issue edit <N> --remove-label enhancement --add-label enhancement`
 > 重新触发。
-## 第 9 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
+## 第 10 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
 
 **讲解点**：Agentic Workflow 可以跨工作流编排（dispatch-workflow）——Fix Dispatcher 先做
 "值不值得自动修"的判断，再按需触发 Bug Fixer，形成**判断 → 修复 → Draft PR** 三段式流水线。
@@ -403,6 +410,46 @@ gh issue edit <Issue号> --add-label bug
 > ```bash
 > gh workflow run bug-fixer.md -f issue_number=<Issue号>
 > ```
+
+---
+
+## 第 11 幕（彩蛋）：Review Panel —— 内联子代理并发审查（约 4 分钟）
+
+**讲解点**：Review Panel 是 **inline sub-agents（内联子代理）** 的最佳示例——在一次 workflow run
+内同步编排 4 个子代理，各司其职、并行执行，最后汇总成一条有结构的评审评论。这与第 10 幕的
+"跨 workflow dispatch" 模式形成互补，展示了 Agentic Workflow 两种截然不同的编排范式。
+
+| 子代理 | 模型 | 职责 |
+|---|---|---|
+| `validation-auditor` | sonnet | Pydantic 校验缺口（只报本次 diff 引入的） |
+| `test-coverage-scout` | haiku | 未被测试覆盖的行为变更（重点错误路径） |
+| `contract-guard` | sonnet | 破坏性 API 契约变更 |
+| `review-composer` | haiku | 把三份报告汇成一条 Markdown 评论 |
+
+**演示步骤**：
+
+1. 打开第 2 幕 Coding Agent 提的任意 PR（或第 7 幕的 `demo/broken-test` PR）。
+2. 展示 `.github/workflows/review-panel.md`——"9 行 YAML frontmatter + 自然语言步骤 + 4 个 `## agent:` 块，一个文件定义整个评审团"。
+3. 打开 **Actions** 标签页 → `Review Panel` workflow 已运行（每次 PR push 自动触发，约 2 分钟）。
+4. 回到 PR 评论区，展示 Review Panel 的评审评论：
+   - 一行总裁决：`✅ Looks good` 或 `⚠️ N issue(s) found across M area(s)`
+   - 每个有发现的专家有独立 `###` 小节，每条发现一行（文件:符号 — 问题 → 修复建议）
+   - 落款 `🧑‍⚖️ Reviewed by Review Panel — validation · coverage · contract`
+5. 若有 findings，演示让 Coding Agent 响应（回到第 5 幕的流程）。
+6. 展示裁决标签：`review:clean` / `needs-validation` / `needs-tests` / `breaking-change`——
+   每次 push 先清理上一轮标签再打新的，不会在 PR 上积累矛盾结论。
+
+> 💡 **与第 5 幕的 Copilot Code Review 对比**：Copilot Code Review 是平台内置的单模型评审，
+> Review Panel 是一个自定义 Agentic Workflow，三专家分工、用不同模型控成本、支持 fail-closed
+> 安全约束——展示了在平台能力上叠加自定义逻辑的空间。
+
+> 💡 **Canvas 彩蛋**：演示完所有幕次后，可在 Copilot 面板打开 **Agentic Workflows Canvas**
+> （Extensions → agentic-workflows），一张图看清仓库中 9 个 agentic workflow 的触发、工具、
+> 子代理和安全边界——用来做演示收尾/Q&A 的可视化锚点效果很好。
+
+> 🧯 兜底：Review Panel 默认带 `staged: true`（演练模式），真实写入前先在 Actions 摘要里
+> 预览输出（标有 🎭）。如需放开真实写入，去掉 frontmatter 的 `staged: true` 并重新编译：
+> `gh aw compile review-panel`
 
 ---
 
