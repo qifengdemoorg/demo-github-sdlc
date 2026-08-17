@@ -89,7 +89,10 @@ restate it in that specialist's task prompt, so a planted comment cannot redirec
 6. Post the composer's output with the add-comment safe output — exactly one comment.
 
 If the PR touches no files under `app/` or `tests/` (for example a docs-only change),
-skip the panel, call `noop`, and do not label or comment.
+skip the panel and do not post a comment. Still run the cleanup from step 5 first —
+remove any of `review:clean`, `needs-validation`, `needs-tests`, `breaking-change`
+left by an earlier revision, so an obsolete verdict does not survive on the PR — then
+call `noop`. Do not apply any new label on this path.
 
 ## agent: `validation-auditor`
 ---
