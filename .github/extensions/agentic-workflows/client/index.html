@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Agentic Workflows</title>
+        <link rel="stylesheet" href="/app.css" />
+    </head>
+    <body>
+        <div class="app">
+            <aside class="sidebar">
+                <header class="sidebar-head">
+                    <div class="title-row">
+                        <h1>Agentic Workflows</h1>
+                        <button id="refresh" class="icon-btn" title="重新扫描 .github/workflows">⟳</button>
+                    </div>
+                    <p class="meta" id="meta">扫描中…</p>
+                    <input id="search" type="search" placeholder="搜索名称 / 触发 / 工具…" autocomplete="off" />
+                </header>
+                <nav id="list" class="list"></nav>
+            </aside>
+            <main id="main" class="main"><div class="empty">加载中…</div></main>
+        </div>
+        <script type="module" src="/app.js"></script>
+    </body>
+</html>
