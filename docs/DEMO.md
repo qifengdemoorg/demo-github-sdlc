@@ -3,7 +3,7 @@
 > 仓库：`qifengdemoorg/demo-github-sdlc` · 应用：**TaskFlow**（FastAPI 任务管理 API）
 > 总时长：约 30–40 分钟（含 Agent 执行等待，可穿插讲解）
 
-本剧本通过一个真实的功能迭代故事，串联 9 大 GitHub Agentic SDLC 能力：
+本剧本通过一个真实的功能迭代故事，串联 7 大 GitHub Agentic SDLC 能力：
 
 | 幕 | 能力 | 一句话看点 |
 |----|------|-----------|
@@ -13,10 +13,8 @@
 | 4 | PR Ruleset | 直接 push main 被拒；不过 CI 不给合 |
 | 5 | Copilot Code Review | Ruleset 自动请求 Copilot 评审，Agent 响应修复 |
 | 6 | Agent Merge | 两个并行 Agent 分支冲突，AI 智能合并 |
-| 7 | Agentic Workflow ② | CI 失败后 AI 自动诊断根因并评论（彩蛋） |
-| 8 | Agentic Workflow ③ | `/add-tests` 斜杠命令自动补全 PR 测试覆盖（彩蛋） |
-| 9 | Agentic Workflow ④ | `enhancement` 标签自动派发规划，AI 产出实现计划（彩蛋） |
-| 9 | Agentic Workflow ④ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
+| 7 | Agentic Workflow ② | `enhancement` 标签自动派发规划，AI 产出实现计划（彩蛋） |
+| 8 | Agentic Workflow ③ | Bug 标签触发双阶段自动修复流水线：判断 → 修复 → Draft PR（彩蛋） |
 
 ---
 
@@ -45,7 +43,7 @@ curl -s http://localhost:8000/ | grep -q "TaskFlow" && echo "UI OK"
 # 7. （可选）确认 Demo Doc Updater 已注册（PR 合入 main 后自动同步剧本）
 gh workflow list | grep demo-doc-updater
 
-# 8. （可选）确认 Bug Fix Pipeline 已启用（第 9 幕）
+# 8. （可选）确认 Bug Fix Pipeline 已启用（第 8 幕）
 gh workflow list | grep -E "fix-dispatcher|bug-fixer"
 ```
 
@@ -253,56 +251,7 @@ Coding Agent 会 rebase / merge 并推送解决冲突的 commit。
 
 ---
 
-## 第 7 幕（彩蛋）：CI Doctor 自动诊断失败（约 4 分钟）
-
-**讲解点**：Agentic Workflow 不只处理“正常流”，还能兜住“异常流”——CI 红了，AI 先到现场。
-
-1. 提一个带 bug 的 PR：
-
-```bash
-git checkout -b demo/broken-test origin/main
-# 制造一个 bug：把创建接口的状态码改错
-sed -i '' 's/status_code=201/status_code=200/' app/main.py
-git commit -am "refactor: simplify create endpoint response"
-git push -u origin demo/broken-test
-gh pr create --fill
-```
-
-2. CI 的 **Test** job 失败 → 触发 `CI Doctor` agentic workflow。
-3. 约 2 分钟后 PR 上出现诊断评论：**失败的 job/step、根因（引用日志）、修复建议**，
-   落款 `🩺 Automated diagnosis by CI Doctor (agentic workflow)`。
-4. 讲解 `ci-doctor.md` 源文件 30 秒，收尾。
-
----
-
-## 第 8 幕（彩蛋）：Test Writer —— 斜杠命令补全测试（约 3 分钟）
-
-**讲解点**：Agentic Workflow 不仅能响应事件，还能响应斜杠命令（slash command）——
-任何有权限的协作者在 PR 评论里输入 `/add-tests`，AI 就会自动分析覆盖缺口、补写测试、推送 commit。
-
-1. 打开第 2 幕 Coding Agent 提的任意一个 PR（或新建一个带改动但测试不完整的 PR）。
-2. 在 PR 评论框输入：
-
-```text
-/add-tests
-```
-
-3. 打开 **Actions** 标签页 → `Test Writer` workflow 正在运行（约 1–2 分钟）。
-4. 工作流完成后：
-   - PR 分支上新增一个 `test: add missing coverage via /add-tests` commit；
-   - PR 评论区出现 AI 摘要：覆盖缺口、新增用例列表、ruff/pytest 结果，
-     落款 `🧪 Automated tests by Test Writer (agentic workflow)`。
-5. 展示 `.github/workflows/test-writer.md` 源文件——"同样是自然语言指令，30 行定义一个斜杠命令"。
-
-> 💡 与第 1 幕（Issue Triage）对比：都是 Agentic Workflow，触发器不同——
-> 前者响应 `issues.opened` 事件，后者响应 `pull_request_comment` 上的 `/add-tests` 命令。
-
-> 🧯 兜底：若 Test Writer 排队较慢，先展示 `test-writer.md` 源文件讲解机制，
-> 再回头看 workflow run 结果。
-
----
-
-## 第 9 幕（彩蛋）：Plan Writer —— enhancement 自动出实现计划（约 4 分钟）
+## 第 7 幕（彩蛋）：Plan Writer —— enhancement 自动出实现计划（约 4 分钟）
 
 **讲解点**：不是所有 Issue 都该直接交给 Coding Agent 写代码。含糊的需求先要有**计划**。
 这条链路做的就是这件事：打上 `enhancement` 标签 → AI 判断值不值得规划 → 值得就派发一个
@@ -348,7 +297,10 @@ gh issue edit <N> --add-label enhancement
 > 🧯 兜底：若判定为 DECLINE，直接把它当作演示内容讲——展示评论里"需要补充什么"的具体建议，
 > 再补全 Issue 描述后 `gh issue edit <N> --remove-label enhancement --add-label enhancement`
 > 重新触发。
-## 第 9 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
+
+---
+
+## 第 8 幕（彩蛋）：Bug Fix Pipeline —— 标签触发双阶段自动修复（约 5 分钟）
 
 **讲解点**：Agentic Workflow 可以跨工作流编排（dispatch-workflow）——Fix Dispatcher 先做
 "值不值得自动修"的判断，再按需触发 Bug Fixer，形成**判断 → 修复 → Draft PR** 三段式流水线。

@@ -8,7 +8,7 @@
 | # | 能力 | 载体 |
 |---|------|------|
 | 1 | **Coding Agent** | 将 Issue 指派给 Copilot，自动开发并提交 PR |
-| 2 | **Agentic Workflow** | `issue-triage`（自动分类 Issue）与 `ci-doctor`（CI 失败诊断），基于 [gh-aw](https://github.com/github/gh-aw) |
+| 2 | **Agentic Workflow** | `issue-triage`（自动分类 Issue）与 bug / enhancement 双链路自动派发，基于 [gh-aw](https://github.com/github/gh-aw) |
 | 3 | **GitHub Actions** | `ci.yml`：ruff Lint + pytest Test |
 | 4 | **PR Ruleset** | main 分支强制 PR、强制状态检查 |
 | 5 | **Copilot Code Review** | Ruleset 自动请求 Copilot 评审每个 PR |
@@ -58,7 +58,6 @@ tests/                  # pytest 测试
   ci.yml                # GitHub Actions CI
   issue-triage.md       # Agentic workflow 源文件（自然语言）
   issue-triage.lock.yml # gh aw compile 产物
-  ci-doctor.md / .lock.yml
   fix-dispatcher.md → bug-fixer.md      # bug 链路：判定 → 改代码开 PR
   plan-dispatcher.md → plan-writer.md   # enhancement 链路：判定 → 出实现计划
 .github/agents/         # 可复用的 agent 指令，workflow 用 imports: 引入

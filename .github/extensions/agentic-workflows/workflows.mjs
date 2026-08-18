@@ -5,7 +5,7 @@
 // GitHub Agentic Workflows (gh-aw) are authored as markdown files with YAML
 // frontmatter and compiled to a sibling `<name>.lock.yml`. Plain Actions
 // workflows are read too, so the pipeline view can show how they connect
-// (e.g. CI -> CI Doctor).
+// (e.g. CI -> an agentic workflow triggered by its failure).
 
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
