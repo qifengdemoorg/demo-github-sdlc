@@ -84,3 +84,42 @@ def test_delete_task():
     resp = client.delete("/tasks/1")
     assert resp.status_code == 204
     assert client.get("/tasks/1").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# bulk create endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_create_returns_201_with_all_tasks():
+    resp = client.post("/tasks/bulk", json=["Alpha", "Beta", "Gamma"])
+    assert resp.status_code == 201
+    tasks = resp.json()
+    assert len(tasks) == 3
+    assert [t["title"] for t in tasks] == ["Alpha", "Beta", "Gamma"]
+
+
+def test_bulk_create_assigns_sequential_ids():
+    resp = client.post("/tasks/bulk", json=["First", "Second"])
+    ids = [t["id"] for t in resp.json()]
+    assert ids == [1, 2]
+
+
+def test_bulk_create_tasks_appear_in_list():
+    client.post("/tasks/bulk", json=["X", "Y"])
+    resp = client.get("/tasks")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
+
+
+def test_bulk_create_empty_list_returns_empty():
+    resp = client.post("/tasks/bulk", json=[])
+    assert resp.status_code == 201
+    assert resp.json() == []
+
+
+def test_bulk_create_ids_continue_after_single_create():
+    client.post("/tasks", json={"title": "Solo"})
+    resp = client.post("/tasks/bulk", json=["A", "B"])
+    ids = [t["id"] for t in resp.json()]
+    assert ids == [2, 3]
